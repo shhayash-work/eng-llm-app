@@ -1,0 +1,392 @@
+[
+  {
+    "project_id": "TKY-2024-001",
+    "project_name": "東京都品川区アンテナ基地局建設",
+    "location": "東京都品川区",
+    "current_phase": "工事実施",
+    "start_date": "2024-10-01",
+    "estimated_completion": "2025-11-01",
+    "responsible_person": "田中一郎",
+    "reports": [
+      {
+        "file_name": "report_001_antenna_tower_opposition_initial.txt",
+        "report_date": "2024-11-20",
+        "report_type": "初回説明報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_001_antenna_tower_opposition.txt",
+        "report_date": "2024-12-15",
+        "report_type": "進捗更新報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_011_complex_issue.txt",
+        "report_date": "2024-12-14",
+        "report_type": "複合問題報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_018_budget_issue.txt",
+        "report_date": "2024-12-18",
+        "report_type": "予算問題報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "STM-2024-003",
+    "project_name": "埼玉県川口市基地局建設",
+    "location": "埼玉県川口市",
+    "current_phase": "工事実施",
+    "start_date": "2024-09-01",
+    "estimated_completion": "2025-10-15",
+    "responsible_person": "佐藤次郎",
+    "reports": [
+      {
+        "file_name": "report_003_equipment_malfunction.txt",
+        "report_date": "2024-12-10",
+        "report_type": "機器故障報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_013_minor_technical.txt",
+        "report_date": "2025-08-08",
+        "report_type": "技術問題報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_020_contract_dispute.txt",
+        "report_date": "2025-08-11",
+        "report_type": "契約問題報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "KNG-2024-007",
+    "project_name": "神奈川県横浜市青葉区基地局",
+    "location": "神奈川県横浜市青葉区",
+    "current_phase": "工事実施",
+    "start_date": "2024-08-01",
+    "estimated_completion": "2025-09-30",
+    "responsible_person": "鈴木三郎",
+    "reports": [
+      {
+        "file_name": "report_004_normal_progress.txt",
+        "report_date": "2024-12-12",
+        "report_type": "定期進捗報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_010_normal_inspection.txt",
+        "report_date": "2024-12-18",
+        "report_type": "検査完了報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_017_environmental_concern.txt",
+        "report_date": "2025-08-09",
+        "report_type": "環境問題報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "CHB-2024-005",
+    "project_name": "千葉県柏市基地局増設",
+    "location": "千葉県柏市",
+    "current_phase": "工事実施",
+    "start_date": "2024-11-01",
+    "estimated_completion": "2025-12-28",
+    "responsible_person": "高橋四郎",
+    "reports": [
+      {
+        "file_name": "report_002_license_approval_pending.txt",
+        "report_date": "2024-12-08",
+        "report_type": "行政手続き報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_014_normal_routine.txt",
+        "report_date": "2025-08-10",
+        "report_type": "定期作業報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "OSK-2024-009",
+    "project_name": "大阪府堺市基地局新設",
+    "location": "大阪府堺市",
+    "current_phase": "工事実施",
+    "start_date": "2024-10-15",
+    "estimated_completion": "2025-11-15",
+    "responsible_person": "伊藤五郎",
+    "reports": [
+      {
+        "file_name": "report_009_severe_weather_initial.txt",
+        "report_date": "2024-11-30",
+        "report_type": "定期進捗報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_005_weather_delay_minor.txt",
+        "report_date": "2024-12-05",
+        "report_type": "遅延報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_009_severe_weather.txt",
+        "report_date": "2024-12-14",
+        "report_type": "緊急事態報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "FKU-2024-012",
+    "project_name": "福岡県博多区基地局建設",
+    "location": "福岡県博多区",
+    "current_phase": "工事実施",
+    "start_date": "2024-09-20",
+    "estimated_completion": "2025-10-20",
+    "responsible_person": "渡辺六郎",
+    "reports": [
+      {
+        "file_name": "report_006_design_change_required.txt",
+        "report_date": "2024-12-11",
+        "report_type": "設計変更報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_016_normal_installation.txt",
+        "report_date": "2025-08-07",
+        "report_type": "設置作業報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "SND-2024-015",
+    "project_name": "仙台市青葉区基地局建設",
+    "location": "宮城県仙台市青葉区",
+    "current_phase": "工事実施",
+    "start_date": "2024-11-10",
+    "estimated_completion": "2026-01-10",
+    "responsible_person": "松本七郎",
+    "reports": [
+      {
+        "file_name": "report_007_permission_delay.txt",
+        "report_date": "2024-12-13",
+        "report_type": "許可遅延報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_015_administrative_delay.txt",
+        "report_date": "2025-08-06",
+        "report_type": "行政遅延報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "NGY-2024-018",
+    "project_name": "名古屋市中区基地局増設",
+    "location": "愛知県名古屋市中区",
+    "current_phase": "工事実施",
+    "start_date": "2024-10-01",
+    "estimated_completion": "2025-12-01",
+    "responsible_person": "小林八郎",
+    "reports": [
+      {
+        "file_name": "report_008_normal_maintenance.txt",
+        "report_date": "2024-12-16",
+        "report_type": "保守作業報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_012_normal_completion.txt",
+        "report_date": "2024-12-20",
+        "report_type": "完了報告",
+        "is_latest": false
+      },
+      {
+        "file_name": "report_019_normal_testing.txt",
+        "report_date": "2025-08-05",
+        "report_type": "テスト実施報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "HKD-2024-021",
+    "project_name": "北海道札幌市5G基地局建設",
+    "location": "北海道札幌市中央区",
+    "current_phase": "完了",
+    "start_date": "2024-03-01",
+    "estimated_completion": "2024-07-15",
+    "responsible_person": "北村九郎",
+    "reports": [
+      {
+        "file_name": "report_021_hokkaido_completion.txt",
+        "report_date": "2024-07-15",
+        "report_type": "完了報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "OKN-2024-024",
+    "project_name": "沖縄県那覇市基地局増設",
+    "location": "沖縄県那覇市",
+    "current_phase": "完了",
+    "start_date": "2024-04-10",
+    "estimated_completion": "2024-08-05",
+    "responsible_person": "島袋十郎",
+    "reports": [
+      {
+        "file_name": "report_022_okinawa_completion.txt",
+        "report_date": "2024-08-05",
+        "report_type": "完了報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "HRS-2024-027",
+    "project_name": "広島県広島市基地局更新",
+    "location": "広島県広島市中区",
+    "current_phase": "工事実施",
+    "start_date": "2024-06-01",
+    "estimated_completion": "2025-09-30",
+    "responsible_person": "山田十一郎",
+    "reports": [
+      {
+        "file_name": "report_023_hiroshima_progress.txt",
+        "report_date": "2025-08-10",
+        "report_type": "進捗報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "KYT-2024-030",
+    "project_name": "京都府京都市基地局新設",
+    "location": "京都府京都市左京区",
+    "current_phase": "工事実施",
+    "start_date": "2024-07-15",
+    "estimated_completion": "2025-10-20",
+    "responsible_person": "田村十二郎",
+    "reports": [
+      {
+        "file_name": "report_024_kyoto_progress.txt",
+        "report_date": "2025-08-08",
+        "report_type": "進捗報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "NIG-2024-033",
+    "project_name": "新潟県新潟市基地局建設",
+    "location": "新潟県新潟市中央区",
+    "current_phase": "工事実施",
+    "start_date": "2024-05-20",
+    "estimated_completion": "2025-09-15",
+    "responsible_person": "佐々木十三郎",
+    "reports": [
+      {
+        "file_name": "report_025_niigata_delay.txt",
+        "report_date": "2025-08-09",
+        "report_type": "遅延報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "SHZ-2024-036",
+    "project_name": "静岡県静岡市基地局増設",
+    "location": "静岡県静岡市葵区",
+    "current_phase": "完了",
+    "start_date": "2024-02-15",
+    "estimated_completion": "2024-06-30",
+    "responsible_person": "遠藤十四郎",
+    "reports": [
+      {
+        "file_name": "report_026_shizuoka_completion.txt",
+        "report_date": "2024-06-30",
+        "report_type": "完了報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "GNM-2024-039",
+    "project_name": "群馬県前橋市基地局新設",
+    "location": "群馬県前橋市",
+    "current_phase": "工事実施",
+    "start_date": "2024-08-01",
+    "estimated_completion": "2025-11-10",
+    "responsible_person": "吉田十五郎",
+    "reports": [
+      {
+        "file_name": "report_027_gunma_startup.txt",
+        "report_date": "2025-08-05",
+        "report_type": "開始報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "YKH-2024-015",
+    "project_name": "横浜市港北区5G基地局新設工事",
+    "location": "神奈川県横浜市港北区",
+    "current_phase": "設置交渉",
+    "start_date": "2024-12-01",
+    "estimated_completion": "2025-10-30",
+    "responsible_person": "佐々木花子",
+    "reports": [
+      {
+        "file_name": "report_028_no_project_id.txt",
+        "report_date": "2025-08-12",
+        "report_type": "進捗報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "CHB-2024-016",
+    "project_name": "千葉県市川市アンテナ設置",
+    "location": "千葉県市川市",
+    "current_phase": "免許申請",
+    "start_date": "2024-10-15",
+    "estimated_completion": "2025-09-30",
+    "responsible_person": "高橋次郎",
+    "reports": [
+      {
+        "file_name": "report_029_variant_name.txt",
+        "report_date": "2025-08-11",
+        "report_type": "定期報告",
+        "is_latest": true
+      }
+    ]
+  },
+  {
+    "project_id": "OSK-2024-017",
+    "project_name": "大阪府大阪市淀川区基地局建設",
+    "location": "大阪府大阪市淀川区",
+    "current_phase": "工事実施",
+    "start_date": "2024-08-01",
+    "estimated_completion": "2025-07-31",
+    "responsible_person": "山田太郎",
+    "reports": [
+      {
+        "file_name": "report_030_location_only.txt",
+        "report_date": "2025-08-10",
+        "report_type": "作業報告",
+        "is_latest": true
+      }
+    ]
+  }
+]
