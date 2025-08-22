@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta
 import hashlib
 
-from app.models.report import DocumentReport, FlagType
+from app.models.report import DocumentReport, StatusFlag
 from app.models.construction import ConstructionProject
 from app.config.settings import RISK_FLAGS
 
@@ -20,7 +20,7 @@ def _generate_data_hash(reports: List[DocumentReport], projects: List[Constructi
         report_data.append({
             'file_name': report.file_name,
             'flags': [flag.value for flag in (report.flags or [])],
-            'risk_level': getattr(report.analysis_result, 'risk_level', None) if report.analysis_result else None,
+            'risk_level': getattr(report, 'risk_level', None),
             'created_at': report.created_at.isoformat() if report.created_at else None
         })
     
@@ -84,7 +84,7 @@ def render_summary_metrics(reports: List[DocumentReport], projects: List[Constru
     with col3:
         high_risk_count = len([
             r for r in reports
-            if r.analysis_result and r.analysis_result.risk_level in ["高"]
+            if getattr(r, 'risk_level', None) in ["高"]
         ])
         st.metric(
             label="⚠️ 高リスク案件",
@@ -106,7 +106,7 @@ def render_summary_metrics(reports: List[DocumentReport], projects: List[Constru
     with col5:
         if reports:
             avg_urgency = sum(
-                r.analysis_result.urgency_score if r.analysis_result else 0
+                getattr(r, 'urgency_score', 0)
                 for r in reports
             ) / len(reports)
             st.metric(
@@ -126,12 +126,12 @@ def render_alerts(reports: List[DocumentReport]):
     # 緊急度の高いレポートを抽出
     high_priority_reports = [
         r for r in reports
-        if r.analysis_result and r.analysis_result.urgency_score >= 7
+        if getattr(r, 'urgency_score', 0) >= 7
     ]
     
     if high_priority_reports:
         for report in sorted(high_priority_reports, 
-                           key=lambda x: x.analysis_result.urgency_score, 
+                           key=lambda x: getattr(x, 'urgency_score', 0), 
                            reverse=True)[:5]:
             
             # フラグアイコンを取得
@@ -143,11 +143,11 @@ def render_alerts(reports: List[DocumentReport]):
             flag_display = " ".join(flag_icons) if flag_icons else "❓"
             
             with st.expander(
-                f"{flag_display} {report.file_name} (緊急度: {report.analysis_result.urgency_score})",
+                f"{flag_display} {report.file_name} (緊急度: {getattr(report, 'urgency_score', 0)})",
                 expanded=False
             ):
                 st.write(f"**ファイル:** {report.file_name}")
-                st.write(f"**リスクレベル:** {report.analysis_result.risk_level}")
+                st.write(f"**リスクレベル:** {report.risk_level.value if report.risk_level else '不明'}")
                 st.write(f"**要約:** {report.analysis_result.summary}")
                 
                 if report.analysis_result.key_points:
@@ -239,7 +239,7 @@ def render_risk_level_chart(reports: List[DocumentReport]):
     # キャッシュ用のデータ準備
     reports_hash = _generate_data_hash(reports)
     risk_data = [
-        getattr(report.analysis_result, 'risk_level', '低') if report.analysis_result else '低'
+        report.risk_level.value if report.risk_level else '低'
         for report in reports
     ]
     
@@ -258,7 +258,7 @@ def render_timeline_chart(reports: List[DocumentReport]):
             df_data.append({
                 'date': report.created_at.date(),
                 'count': 1,
-                'urgency': report.analysis_result.urgency_score if report.analysis_result else 1
+                'urgency': getattr(report, 'urgency_score', 1)
             })
         
         df = pd.DataFrame(df_data)

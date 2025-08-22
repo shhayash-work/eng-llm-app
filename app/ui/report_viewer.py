@@ -6,7 +6,7 @@ import pandas as pd
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from app.models.report import DocumentReport, ReportType, StatusFlag, CategoryLabel
+from app.models.report import DocumentReport, ReportType, StatusFlag
 from app.config.settings import RISK_FLAGS
 
 def render_report_list(reports: List[DocumentReport]):
@@ -60,8 +60,8 @@ def render_report_filters(reports: List[DocumentReport]):
         # ステータスフィルター（表項目順）
         status_labels = {
             'stopped': '停止',
-            'delay_risk_high': '遅延リスク高',
-            'delay_risk_low': '遅延リスク低',
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延',
             'normal': '順調'
         }
         status_options = ["全て"] + list(status_labels.values())
@@ -160,25 +160,18 @@ def apply_filters(reports: List[DocumentReport]) -> List[DocumentReport]:
             if r.status_flag == filter_status
         ]
     
-    # カテゴリーフィルター
-    if hasattr(st.session_state, 'filter_category') and st.session_state.filter_category != "全て":
-        from app.models.report import CategoryLabel
-        filter_category = CategoryLabel(st.session_state.filter_category)
-        filtered_reports = [
-            r for r in filtered_reports
-            if r.category_labels and filter_category in r.category_labels
-        ]
+    # カテゴリーフィルター削除: 15カテゴリ遅延理由体系に統一
     
     # 緊急度フィルター
     if hasattr(st.session_state, 'filter_urgency'):
         filtered_reports = [
             r for r in filtered_reports
-            if r.analysis_result and r.analysis_result.urgency_score >= st.session_state.filter_urgency
+            if getattr(r, 'urgency_score', 0) >= st.session_state.filter_urgency
         ]
     
     # 緊急度でソート
     filtered_reports.sort(
-        key=lambda x: x.analysis_result.urgency_score if x.analysis_result else 0,
+        key=lambda x: getattr(x, 'urgency_score', 0),
         reverse=True
     )
     
@@ -202,8 +195,8 @@ def render_report_table(reports: List[DocumentReport]):
         
         # 分析結果
         if report.analysis_result:
-            risk_level = report.analysis_result.risk_level
-            urgency_score = report.analysis_result.urgency_score
+            risk_level = report.risk_level.value if report.risk_level else "-"
+            urgency_score = getattr(report, 'urgency_score', 0)
             summary = report.analysis_result.summary[:50] + "..." if len(report.analysis_result.summary) > 50 else report.analysis_result.summary
         else:
             risk_level = "-"
@@ -213,8 +206,8 @@ def render_report_table(reports: List[DocumentReport]):
         # 新フラグシステムの日本語化
         status_labels = {
             'stopped': '停止',
-            'delay_risk_high': '遅延リスク高',
-            'delay_risk_low': '遅延リスク低',
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延',
             'normal': '順調'
         }
         
@@ -281,8 +274,8 @@ def render_report_detail(report: DocumentReport):
     with col2:
         if report.analysis_result:
             st.write("**分析結果**")
-            st.write(f"**リスクレベル:** {report.analysis_result.risk_level}")
-            st.write(f"**緊急度スコア:** {report.analysis_result.urgency_score}/10")
+            st.write(f"**リスクレベル:** {report.risk_level.value if report.risk_level else '不明'}")
+            st.write(f"**緊急度スコア:** {getattr(report, 'urgency_score', 0)}/10")
             
             # フラグ表示
             if report.flags:
@@ -348,16 +341,17 @@ def render_analysis_tab(report: DocumentReport):
             st.warning(f"⚠️ {issue}")
     
     # プロジェクト情報
-    if analysis.project_info:
+    # プロジェクト情報（reportから直接取得）
+    if report.project_id:
         st.write("**プロジェクト情報**")
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.write(f"**プロジェクトID:** {analysis.project_info.get('project_id', '不明')}")
+            st.write(f"**プロジェクトID:** {report.project_id}")
         with col2:
-            st.write(f"**場所:** {analysis.project_info.get('location', '不明')}")
+            st.write("**場所:** 不明")  # 現在DocumentReportに保存されていない
         with col3:
-            st.write(f"**担当者:** {analysis.project_info.get('responsible_person', '不明')}")
+            st.write("**担当者:** 不明")  # 現在DocumentReportに保存されていない
 
 def render_anomaly_tab(report: DocumentReport):
     """異常検知タブを表示"""
@@ -394,11 +388,7 @@ def render_anomaly_tab(report: DocumentReport):
 
 def render_project_info_tab(report: DocumentReport):
     """プロジェクト情報タブを表示"""
-    if not report.analysis_result or not report.analysis_result.project_info:
-        st.info("プロジェクト情報がありません。")
-        return
-    
-    project_info = report.analysis_result.project_info
+    # project_infoはAnalysisResultから削除されたため、直接DocumentReportから情報を取得
     
     st.subheader("プロジェクト詳細情報")
     
@@ -407,12 +397,24 @@ def render_project_info_tab(report: DocumentReport):
     
     with info_cols[0]:
         st.write("**基本情報**")
-        st.write(f"**プロジェクトID:** {project_info.get('project_id', '不明')}")
-        st.write(f"**プロジェクト名:** {project_info.get('project_name', '不明')}")
-        st.write(f"**場所:** {project_info.get('location', '不明')}")
+        st.write(f"**プロジェクトID:** {report.project_id or '不明'}")
+        st.write(f"**プロジェクト名:** 不明")  # DocumentReportに保存されていない
+        st.write(f"**場所:** 不明")  # DocumentReportに保存されていない
     
     with info_cols[1]:
         st.write("**担当者情報**")
-        st.write(f"**責任者:** {project_info.get('responsible_person', '不明')}")
-        st.write(f"**現場代理人:** {project_info.get('site_manager', '不明')}")
-        st.write(f"**連絡先:** {project_info.get('contact', '不明')}")
+        st.write(f"**責任者:** 不明")  # DocumentReportに保存されていない
+        st.write(f"**現場代理人:** 不明")  # DocumentReportに保存されていない
+        st.write(f"**連絡先:** 不明")  # DocumentReportに保存されていない
+    
+    # プロジェクトマッピング情報を表示
+    if hasattr(report, 'project_mapping_info') and report.project_mapping_info:
+        st.write("**マッピング情報**")
+        mapping_info = report.project_mapping_info
+        st.write(f"**信頼度スコア:** {mapping_info.get('confidence_score', 'N/A')}")
+        st.write(f"**マッピング手法:** {mapping_info.get('matching_method', 'N/A')}")
+        
+        if mapping_info.get('extracted_info'):
+            st.write("**抽出された情報:**")
+            for key, value in mapping_info['extracted_info'].items():
+                st.write(f"• {key}: {value}")

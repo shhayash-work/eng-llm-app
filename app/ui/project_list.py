@@ -72,8 +72,8 @@ def render_project_filters(projects: List[ProjectSummary]):
         # ステータスフィルター
         status_labels = {
             'stopped': '停止',
-            'delay_risk_high': '遅延リスク高',
-            'delay_risk_low': '遅延リスク低',
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延',
             'normal': '順調'
         }
         status_options = ["全て"] + list(status_labels.values())
@@ -183,8 +183,8 @@ def apply_project_filters(projects: List[ProjectSummary]) -> List[ProjectSummary
     # ステータス順でソート
     status_priority = {
         'stopped': 1,
-        'delay_risk_high': 2,
-        'delay_risk_low': 3,
+        'major_delay': 2,
+        'minor_delay': 3,
         'normal': 4
     }
     
@@ -206,8 +206,8 @@ def render_project_table(projects: List[ProjectSummary]):
     # ステータス・リスクレベル日本語化
     status_labels = {
         'stopped': '停止',
-        'delay_risk_high': '遅延リスク高',
-        'delay_risk_low': '遅延リスク低',
+        'major_delay': '重大な遅延',
+        'minor_delay': '軽微な遅延',
         'normal': '順調'
     }
     
@@ -281,14 +281,13 @@ def render_project_table(projects: List[ProjectSummary]):
             construction_data.append({
                 "プロジェクトID": project.project_id,
                 "プロジェクト名": project.project_name,
-                "設計・計画": phase_status.get("設計・計画", "不明"),
-                "許可申請": phase_status.get("許可申請", "不明"),
-                "用地確保": phase_status.get("用地確保", "不明"),
-                "工事準備": phase_status.get("工事準備", "不明"),
-                "基礎工事": phase_status.get("基礎工事", "不明"),
-                "本体工事": phase_status.get("本体工事", "不明"),
-                "設備工事": phase_status.get("設備工事", "不明"),
-                "検査・完成": phase_status.get("検査・完成", "不明")
+                "置局発注": phase_status.get("置局発注", "不明"),
+                "基本同意": phase_status.get("基本同意", "不明"),
+                "基本図承認": phase_status.get("基本図承認", "不明"),
+                "内諾": phase_status.get("内諾", "不明"),
+                "附帯着工": phase_status.get("附帯着工", "不明"),
+                "電波発射": phase_status.get("電波発射", "不明"),
+                "工事検収": phase_status.get("工事検収", "不明")
             })
         
         construction_df = pd.DataFrame(construction_data)
@@ -316,87 +315,53 @@ def render_project_table(projects: List[ProjectSummary]):
         )
 
 def _get_construction_phases_status(project: ProjectSummary) -> Dict[str, str]:
-    """建設工程ステップの進捗状況を取得"""
-    # 実際のデータ構造に合わせた5段階フェーズ
-    actual_phases = [
-        "工事開始",
-        "設置交渉", 
+    """建設工程7ステップの進捗状況を取得"""
+    # 正しい7ステップ建設工程
+    seven_steps = [
+        "置局発注",
+        "基本同意", 
+        "基本図承認",
         "内諾",
-        "免許申請",
-        "工事実施"
+        "附帯着工",
+        "電波発射",
+        "工事検収"
     ]
-    
-    # 表示用8段階への対応付け
-    display_phase_mapping = {
-        "工事開始": ["設計・計画"],
-        "設置交渉": ["許可申請", "用地確保"],
-        "内諾": ["工事準備"],
-        "免許申請": ["基礎工事"],
-        "工事実施": ["本体工事", "設備工事", "検査・完成"]
-    }
     
     phase_status = {}
     
-    # プロジェクトの実際のフェーズデータがある場合はそれを使用
-    if hasattr(project, 'phases') and project.phases:
-        # 実際のフェーズデータから状態を取得
-        phases_data = {phase.get('name'): phase.get('status') for phase in project.phases}
-        
-        for actual_phase in actual_phases:
-            display_phases = display_phase_mapping.get(actual_phase, [actual_phase])
-            status = phases_data.get(actual_phase, "不明")
-            
-            # ステータスの正規化
-            if status == "完了":
-                display_status = "済"
-            elif status in ["進行中", "停止中"]:
-                display_status = "実施中" if status == "進行中" else "停止中"
+    # 現在フェーズから7ステップの進捗状況を推定
+    current_phase = project.current_phase
+    current_phase_index = -1
+    
+    # 現在のフェーズが7ステップのどの段階かを判定
+    for i, phase in enumerate(seven_steps):
+        if phase == current_phase:
+            current_phase_index = i
+            break
+    
+    # プロジェクトのステータスを確認（停止状態のチェック）
+    is_stopped = (
+        (project.current_status and project.current_status.value == 'stopped') or
+        ('未定' in str(project.estimated_completion))
+    )
+    
+    # 7ステップの状態を設定
+    for i, phase in enumerate(seven_steps):
+        if current_phase_index == -1:
+            # 現在フェーズが不明な場合はすべて未着手
+            phase_status[phase] = "未着手"
+        elif i < current_phase_index:
+            # 現在フェーズより前は完了
+            phase_status[phase] = "完了"
+        elif i == current_phase_index:
+            # 現在フェーズ
+            if is_stopped:
+                phase_status[phase] = "停止中"
             else:
-                display_status = "未着手"
-            
-            # 表示用フェーズに状態を設定
-            for display_phase in display_phases:
-                phase_status[display_phase] = display_status
-    else:
-        # フェーズデータがない場合は現在フェーズから推定
-        current_phase = project.current_phase
-        current_phase_index = -1
-        
-        # 現在のフェーズがどの段階かを判定
-        for i, phase in enumerate(actual_phases):
-            if phase == current_phase:
-                current_phase_index = i
-                break
-        
-        # 8段階表示フェーズの状態を設定
-        all_display_phases = ["設計・計画", "許可申請", "用地確保", "工事準備", "基礎工事", "本体工事", "設備工事", "検査・完成"]
-        
-        # 現在フェーズまでの累積表示フェーズ数を計算
-        cumulative_display_phases = 0
-        for i, actual_phase in enumerate(actual_phases):
-            display_phases_count = len(display_phase_mapping.get(actual_phase, [actual_phase]))
-            
-            if i < current_phase_index:
-                # 完了済みのフェーズ
-                for j in range(cumulative_display_phases, cumulative_display_phases + display_phases_count):
-                    if j < len(all_display_phases):
-                        phase_status[all_display_phases[j]] = "済"
-            elif i == current_phase_index:
-                # 実施中のフェーズ
-                for j in range(cumulative_display_phases, cumulative_display_phases + display_phases_count):
-                    if j < len(all_display_phases):
-                        phase_status[all_display_phases[j]] = "実施中"
-            else:
-                # 未着手のフェーズ
-                for j in range(cumulative_display_phases, cumulative_display_phases + display_phases_count):
-                    if j < len(all_display_phases):
-                        phase_status[all_display_phases[j]] = "未着手"
-                        
-            cumulative_display_phases += display_phases_count
-        
-        # 残りのフェーズは未着手
-        for i in range(cumulative_display_phases, len(all_display_phases)):
-            phase_status[all_display_phases[i]] = "未着手"
+                phase_status[phase] = "進行中"
+        else:
+            # 現在フェーズより後は未着手
+            phase_status[phase] = "未着手"
     
     return phase_status
 
@@ -425,8 +390,8 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
     with col2:
         status_labels = {
             'stopped': '停止',
-            'delay_risk_high': '遅延リスク高',
-            'delay_risk_low': '遅延リスク低', 
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延', 
             'normal': '順調'
         }
         status_text = status_labels.get(target_project.current_status.value, target_project.current_status.value) if target_project.current_status else '不明'
@@ -459,8 +424,8 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
                 if report.status_flag:
                     status_labels = {
                         'stopped': '停止',
-                        'delay_risk_high': '遅延リスク高',
-                        'delay_risk_low': '遅延リスク低', 
+                        'major_delay': '重大な遅延',
+                        'minor_delay': '軽微な遅延', 
                         'normal': '順調'
                     }
                     status_text = status_labels.get(report.status_flag.value, report.status_flag.value)
@@ -509,7 +474,7 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
                 with col2:
                     risk_text = selected_report.risk_level.value if selected_report.risk_level else "不明"
                     st.markdown(f"**リスクレベル:** {risk_text}")
-                    urgency = selected_report.analysis_result.urgency_score if selected_report.analysis_result else 0
+                    urgency = getattr(selected_report, 'urgency_score', 0)
                     st.markdown(f"**緊急度スコア:** {urgency}")
                 
                 if selected_report.analysis_result:

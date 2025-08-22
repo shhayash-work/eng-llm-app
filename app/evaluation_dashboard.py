@@ -13,10 +13,10 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import hashlib
 
-from services.evaluation_service import EvaluationService, EvaluationResult
-from models.report import DocumentReport
-from services.document_processor import DocumentProcessor
-from config.settings import DATA_DIR
+from app.services.evaluation_service import EvaluationService, EvaluationResult
+from app.models.report import DocumentReport
+from app.services.document_processor import DocumentProcessor
+from app.config.settings import DATA_DIR
 import logging
 
 # ログ設定
@@ -166,7 +166,7 @@ def _generate_evaluation_hash() -> str:
         data_hash = hashlib.md5(str(sorted(file_info, key=lambda x: x["file_path"])).encode()).hexdigest()
     
     # 正解データのハッシュ
-    ground_truth_file = Path("data/evaluation/ground_truth.json")
+    ground_truth_file = Path("data/evaluation/comprehensive_ground_truth.json")
     gt_hash = ""
     if ground_truth_file.exists():
         with open(ground_truth_file, 'r', encoding='utf-8') as f:
@@ -178,7 +178,7 @@ def _generate_evaluation_hash() -> str:
 def _deserialize_report_for_evaluation(data: Dict[str, Any]) -> Optional[DocumentReport]:
     """評価用DocumentReportオブジェクトを復元"""
     try:
-        from app.models.report import StatusFlag, CategoryLabel, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection, ReportType
+        from app.models.report import StatusFlag, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection, ReportType
         
         report = DocumentReport(
             file_path=data["file_path"],
@@ -188,42 +188,39 @@ def _deserialize_report_for_evaluation(data: Dict[str, Any]) -> Optional[Documen
             created_at=datetime.fromisoformat(data.get("processed_at", datetime.now().isoformat()))
         )
         
-        # AnalysisResult復元
+        # AnalysisResult復元（簡素化構造）
         if data.get("analysis_result"):
             analysis = data["analysis_result"]
             report.analysis_result = AnalysisResult(
-                project_info={"project": "evaluation"},  # デフォルト値
-                status="unknown",  # デフォルト値
-                issues=[],  # デフォルト値
-                risk_level="低",  # デフォルト値
-                summary="",  # デフォルト値
-                urgency_score=1,  # デフォルト値
+                summary=analysis.get("summary", ""),
+                issues=analysis.get("issues", []),
                 key_points=analysis.get("key_points", "").split(",") if analysis.get("key_points") else [],
-                recommended_flags=analysis.get("recommended_flags", "").split(",") if analysis.get("recommended_flags") else [],
                 confidence=float(analysis.get("confidence", 0.0))
             )
         
-        # AnomalyDetection復元
+        # AnomalyDetection復元（新構造）
         if data.get("anomaly_detection"):
             anomaly = data["anomaly_detection"]
             report.anomaly_detection = AnomalyDetection(
-                is_anomaly=bool(anomaly.get("has_anomaly", False)),
-                anomaly_description=anomaly.get("explanation", ""),
-                confidence=float(anomaly.get("anomaly_score", 0.0)),
-                suggested_action="",  # デフォルト値
-                requires_human_review=False,  # デフォルト値
-                similar_cases=[]  # デフォルト値
+                is_anomaly=bool(anomaly.get("is_anomaly", anomaly.get("has_anomaly", False))),  # 後方互換性
+                anomaly_description=anomaly.get("anomaly_description", anomaly.get("explanation", "")),  # 後方互換性
+                confidence=float(anomaly.get("confidence", 0.0)),
+                suggested_action=anomaly.get("suggested_action", ""),
+                requires_human_review=bool(anomaly.get("requires_human_review", False)),
+                similar_cases=anomaly.get("similar_cases", [])
             )
         
         # 新しいフラグ体系復元
         if data.get("status_flag"):
             report.status_flag = StatusFlag(data["status_flag"])
-        if data.get("category_labels"):
-            report.category_labels = [CategoryLabel(label) for label in data["category_labels"]]
+        # category_labels削除: 15カテゴリ遅延理由体系に統一
         if data.get("risk_level"):
             report.risk_level = RiskLevel(data["risk_level"])
         if data.get("construction_status"):
             report.construction_status = ConstructionStatus(data["construction_status"])
+        
+        # urgency_score復元
+        report.urgency_score = data.get("urgency_score", 1)
         
         return report
         
@@ -319,14 +316,14 @@ def render_metrics_overview(evaluation_result: EvaluationResult):
     with col3:
         st.metric(
             "状態分類 F1",
-            f"{evaluation_result.status_classification.f1_score:.3f}",
+            f"{evaluation_result.status_flag_classification.f1_score:.3f}",
             delta=None
         )
     
     with col4:
         st.metric(
-            "カテゴリ分類 F1",
-            f"{evaluation_result.category_classification.f1_score:.3f}",
+            "遅延理由分類 F1",
+            f"{evaluation_result.delay_reasons_classification.f1_score:.3f}",
             delta=None
         )
     
@@ -388,30 +385,30 @@ def render_detailed_metrics(evaluation_result: EvaluationResult):
     
     # メトリクスデータの準備
     metrics_data = {
-        "機能": ["状態分類", "カテゴリ分類", "リスクレベル評価", "異常検知"],
+        "機能": ["状態分類", "遅延理由分類", "リスクレベル評価", "異常検知"],
         "精度 (Accuracy)": [
-            evaluation_result.status_classification.accuracy,
-            evaluation_result.category_classification.accuracy,
+            evaluation_result.status_flag_classification.accuracy,
+            evaluation_result.delay_reasons_classification.accuracy,
             evaluation_result.risk_level_assessment.accuracy,
-            evaluation_result.anomaly_detection.accuracy
+            evaluation_result.human_review_detection.accuracy
         ],
         "適合率 (Precision)": [
-            evaluation_result.status_classification.precision,
-            evaluation_result.category_classification.precision,
+            evaluation_result.status_flag_classification.precision,
+            evaluation_result.delay_reasons_classification.precision,
             evaluation_result.risk_level_assessment.precision,
-            evaluation_result.anomaly_detection.precision
+            evaluation_result.human_review_detection.precision
         ],
         "再現率 (Recall)": [
-            evaluation_result.status_classification.recall,
-            evaluation_result.category_classification.recall,
+            evaluation_result.status_flag_classification.recall,
+            evaluation_result.delay_reasons_classification.recall,
             evaluation_result.risk_level_assessment.recall,
-            evaluation_result.anomaly_detection.recall
+            evaluation_result.human_review_detection.recall
         ],
         "F1スコア": [
-            evaluation_result.status_classification.f1_score,
-            evaluation_result.category_classification.f1_score,
+            evaluation_result.status_flag_classification.f1_score,
+            evaluation_result.delay_reasons_classification.f1_score,
             evaluation_result.risk_level_assessment.f1_score,
-            evaluation_result.anomaly_detection.f1_score
+            evaluation_result.human_review_detection.f1_score
         ]
     }
     
@@ -436,12 +433,12 @@ def render_performance_charts(evaluation_result: EvaluationResult):
     
     with col1:
         # レーダーチャート
-        categories = ['状態分類', 'カテゴリ分類', 'リスクレベル', '異常検知']
+        categories = ['状態分類', '遅延理由分類', 'リスクレベル', '異常検知']
         f1_scores = [
-            evaluation_result.status_classification.f1_score,
-            evaluation_result.category_classification.f1_score,
+            evaluation_result.status_flag_classification.f1_score,
+            evaluation_result.delay_reasons_classification.f1_score,
             evaluation_result.risk_level_assessment.f1_score,
-            evaluation_result.anomaly_detection.f1_score
+            evaluation_result.human_review_detection.f1_score
         ]
         
         fig_radar = go.Figure()
@@ -470,14 +467,14 @@ def render_performance_charts(evaluation_result: EvaluationResult):
         # バーチャート（精度、再現率、F1）
         metrics = ['精度', '再現率', 'F1スコア']
         status_metrics = [
-            evaluation_result.status_classification.accuracy,
-            evaluation_result.status_classification.recall,
-            evaluation_result.status_classification.f1_score
+            evaluation_result.status_flag_classification.accuracy,
+            evaluation_result.status_flag_classification.recall,
+            evaluation_result.status_flag_classification.f1_score
         ]
-        category_metrics = [
-            evaluation_result.category_classification.accuracy,
-            evaluation_result.category_classification.recall,
-            evaluation_result.category_classification.f1_score
+        delay_reasons_metrics = [
+            evaluation_result.delay_reasons_classification.accuracy,
+            evaluation_result.delay_reasons_classification.recall,
+            evaluation_result.delay_reasons_classification.f1_score
         ]
         
         fig_bar = go.Figure()
@@ -488,9 +485,9 @@ def render_performance_charts(evaluation_result: EvaluationResult):
             marker_color='lightblue'
         ))
         fig_bar.add_trace(go.Bar(
-            name='カテゴリ分類',
+            name='遅延理由分類',
             x=metrics,
-            y=category_metrics,
+            y=delay_reasons_metrics,
             marker_color='lightgreen'
         ))
         
@@ -511,8 +508,8 @@ def render_confusion_matrix(evaluation_result: EvaluationResult):
     
     with col1:
         st.write("**状態分類の混同行列**")
-        if evaluation_result.status_classification.confusion_matrix:
-            cm_data = evaluation_result.status_classification.confusion_matrix
+        if evaluation_result.status_flag_classification.confusion_matrix:
+            cm_data = evaluation_result.status_flag_classification.confusion_matrix
             st.json(cm_data)
     
     with col2:

@@ -23,19 +23,10 @@ class FlagClassifier:
             return [FlagType.REQUIRES_REVIEW]
         
         flags = []
-        recommended_flags = report.analysis_result.recommended_flags
+        # recommended_flags削除: 新しいAnalysisResult構造では使用しない
         
-        # 推奨フラグをFlagTypeに変換
-        for flag_str in recommended_flags:
-            try:
-                flag_type = FlagType(flag_str)
-                flags.append(flag_type)
-            except ValueError:
-                logger.warning(f"Unknown flag type: {flag_str}")
-        
-        # フラグが空の場合は内容ベースで分類
-        if not flags:
-            flags = self._content_based_classification(report)
+        # 内容ベースで分類
+        flags = self._content_based_classification(report)
         
         # 重複を除去
         return list(set(flags))

@@ -137,21 +137,30 @@ class ProjectVectorMapper:
             return False
     
     def _create_project_description(self, project_info: Dict[str, str]) -> str:
-        """プロジェクト記述文作成"""
+        """プロジェクト記述文作成（改善版：プロジェクトマスターデータをそのまま使用）"""
         parts = []
         
+        # 基本情報
         if project_info.get('project_name'):
             parts.append(f"プロジェクト名: {project_info['project_name']}")
+        
+        if project_info.get('station_name'):
+            parts.append(f"局名: {project_info['station_name']}")
+        
+        if project_info.get('station_number'):
+            parts.append(f"局番: {project_info['station_number']}")
         
         if project_info.get('location'):
             parts.append(f"場所: {project_info['location']}")
         
+        if project_info.get('aurora_plan'):
+            parts.append(f"Aurora計画: {project_info['aurora_plan']}")
+        
         if project_info.get('responsible_person'):
             parts.append(f"担当者: {project_info['responsible_person']}")
         
-        # 建設工事のキーワード追加
-        parts.append("工事種別: 通信基地局建設工事")
-        parts.append("工事内容: アンテナ設置・5G基地局・電波塔建設")
+        if project_info.get('current_phase'):
+            parts.append(f"現在フェーズ: {project_info['current_phase']}")
         
         return " ".join(parts)
     

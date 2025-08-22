@@ -11,27 +11,21 @@ class ReportType(Enum):
     CONSTRUCTION_REPORT = "CONSTRUCTION_REPORT"
     TROUBLE_REPORT = "TROUBLE_REPORT"
     PROGRESS_UPDATE = "PROGRESS_UPDATE"
+    # 新しい報告書タイプ
+    CONSTRUCTION_ESTIMATE = "CONSTRUCTION_ESTIMATE"       # 工事見積書
+    NEGOTIATION_PROGRESS = "NEGOTIATION_PROGRESS"         # 交渉経緯報告書
+    STRUCTURAL_DESIGN = "STRUCTURAL_DESIGN"               # 強度計算結果報告書
     OTHER = "OTHER"
 
 # 新しいフラグ体系：状態フラグ（ステータス）
 class StatusFlag(Enum):
-    """状態フラグ（工事の現在状況）"""
+    """状態フラグ（現時点の客観的状況）"""
     NORMAL = "normal"              # 順調
-    DELAY_RISK_LOW = "delay_risk_low"    # 遅延リスク低
-    DELAY_RISK_HIGH = "delay_risk_high"  # 遅延リスク高
+    MINOR_DELAY = "minor_delay"    # 軽微な遅延
+    MAJOR_DELAY = "major_delay"    # 重大な遅延
     STOPPED = "stopped"            # 停止
 
-# 新しいフラグ体系：原因ラベル（カテゴリ）
-class CategoryLabel(Enum):
-    """原因ラベル（建設業界包括カテゴリ）"""
-    TECHNICAL = "technical"         # 技術課題（設計変更、工法問題、機器故障、地盤改良）
-    ADMINISTRATIVE = "administrative"  # 行政手続き（免許申請、許可待ち、承認遅延）
-    STAKEHOLDER = "stakeholder"     # 関係者調整（住民反対、理事会NG、近隣問題）
-    FINANCIAL = "financial"         # 予算・契約（予算超過、契約変更、コスト問題）
-    ENVIRONMENTAL = "environmental" # 環境・外的（天候、地盤条件、アクセス、災害）
-    LEGAL = "legal"                # 法的問題（契約紛争、法令変更、責任分担）
-    REQUIRES_REVIEW = "requires_review"  # 要人間確認（内容不明、分類困難）
-    OTHER = "other"                # その他明確原因（上記以外の特定可能問題）
+
 
 # 後方互換性のため旧フラグ定義も残す
 class FlagType(Enum):
@@ -57,14 +51,9 @@ class ConstructionStatus(Enum):
 
 @dataclass
 class AnalysisResult:
-    """LLM分析結果"""
-    project_info: Dict[str, str]
-    status: str
-    issues: List[str]
-    risk_level: str
-    recommended_flags: List[str]
+    """LLM分析結果（簡素化）"""
     summary: str
-    urgency_score: int
+    issues: List[str]
     key_points: List[str]
     confidence: float = 0.0
     
@@ -78,20 +67,7 @@ class AnomalyDetection:
     requires_human_review: bool
     similar_cases: List[str]
     
-    @property
-    def has_anomaly(self) -> bool:
-        """後方互換性用プロパティ"""
-        return self.is_anomaly
-    
-    @property
-    def anomaly_score(self) -> float:
-        """後方互換性用プロパティ"""
-        return self.confidence
-    
-    @property
-    def explanation(self) -> str:
-        """後方互換性用プロパティ"""
-        return self.anomaly_description
+    # 後方互換性プロパティ削除: 使用されていないため
 
 @dataclass
 class DocumentReport:
@@ -107,7 +83,7 @@ class DocumentReport:
     flags: List[FlagType] = None
     # 新しいフラグ体系
     status_flag: Optional[StatusFlag] = None
-    category_labels: List[CategoryLabel] = None
+    # category_labels削除: 15カテゴリ遅延理由体系に統一
     risk_level: Optional[RiskLevel] = None
     construction_status: Optional[ConstructionStatus] = None
     # 建設工程情報（LLMで抽出）
@@ -121,16 +97,23 @@ class DocumentReport:
     # 🤖 統合分析結果フィールド
     requires_human_review: bool = False            # LLMが分類困難と判定したかのフラグ
     analysis_confidence: float = 0.0              # LLMによる分析の確実性（0.0-1.0）
-    analysis_notes: Optional[str] = None          # LLMによる分析の備考・留意点
+    # analysis_notes削除: summaryに統合
     
     # 📋 プロジェクトマッピング詳細情報
     project_mapping_info: Optional[Dict[str, Any]] = None  # マッピング詳細（信頼度、手法等）
     
+    # 🚧 遅延理由情報（15カテゴリ体系）
+    delay_reasons: List[Dict[str, str]] = field(default_factory=list)  # 新しい遅延理由体系
+    
+    # 🎯 緊急度スコア（将来の遅延可能性）
+    urgency_score: int = 1  # 1-10スケール
+    
+    # current_status削除: status_flagで統一
+    
     def __post_init__(self):
         if self.flags is None:
             self.flags = []
-        if self.category_labels is None:
-            self.category_labels = []
+        # category_labels削除: 15カテゴリ遅延理由体系に統一
     
     def add_flag(self, flag: FlagType):
         """フラグを追加"""
@@ -144,6 +127,4 @@ class DocumentReport:
     
     def get_priority_score(self) -> int:
         """優先度スコアを取得"""
-        if self.analysis_result:
-            return self.analysis_result.urgency_score
-        return 0
+        return self.urgency_score

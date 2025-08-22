@@ -1,446 +1,122 @@
 {
-  "TKY-2024-001": {
-    "project_id": "TKY-2024-001",
-    "project_name": "東京都品川区アンテナ基地局建設",
-    "location": "東京都品川区",
-    "current_phase": "工事実施",
-    "start_date": "2024-10-01",
-    "estimated_completion": "2025-11-01",
+  "MO0001": {
+    "project_id": "MO0001",
+    "project_name": "高輪ビル東基地局建設",
+    "station_name": "高輪ビル東",
+    "station_number": "TKNE-001",
+    "location": "東京都港区高輪4-1-18",
+    "aurora_plan": "容量対策_700M新設_B11追加",
+    "current_phase": "基本図承認",
+    "start_date": "2025-05-13",
+    "estimated_completion": "2025-11-30",
     "responsible_person": "田中一郎",
-    "reports": [
-      {
-        "file_name": "report_001_antenna_tower_opposition_initial.txt",
-        "report_date": "2024-11-20",
-        "report_type": "初回説明報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_001_antenna_tower_opposition.txt",
-        "report_date": "2024-12-15",
-        "report_type": "進捗更新報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_011_complex_issue.txt",
-        "report_date": "2024-12-14",
-        "report_type": "複合問題報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_018_budget_issue.txt",
-        "report_date": "2024-12-18",
-        "report_type": "予算問題報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 東京都品川区アンテナ基地局建設 場所: 東京都品川区 担当者: 田中一郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 1.0197012424468994,
-    "added_at": "2025-08-11T13:55:01.069046"
+    "description": "プロジェクト名: 高輪ビル東基地局建設 局名: 高輪ビル東 局番: TKNE-001 場所: 東京都港区高輪4-1-18 Aurora計画: 容量対策_700M新設_B11追加 担当者: 田中一郎 現在フェーズ: 基本図承認",
+    "embedding_time": 1.0084209442138672,
+    "added_at": "2025-08-21T01:37:13.856498"
   },
-  "STM-2024-003": {
-    "project_id": "STM-2024-003",
-    "project_name": "埼玉県川口市基地局建設",
-    "location": "埼玉県川口市",
-    "current_phase": "工事実施",
-    "start_date": "2024-09-01",
-    "estimated_completion": "2025-10-15",
+  "MO0002": {
+    "project_id": "MO0002",
+    "project_name": "新宿センター西基地局建設",
+    "station_name": "新宿センター西",
+    "station_number": "SJK-002",
+    "location": "東京都新宿区西新宿2-8-1",
+    "aurora_plan": "新設_5G屋上_28GHz試行",
+    "current_phase": "基本同意",
+    "start_date": "2025-07-18",
+    "estimated_completion": "2025-12-20",
     "responsible_person": "佐藤次郎",
-    "reports": [
-      {
-        "file_name": "report_003_equipment_malfunction.txt",
-        "report_date": "2024-12-10",
-        "report_type": "機器故障報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_013_minor_technical.txt",
-        "report_date": "2025-08-08",
-        "report_type": "技術問題報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_020_contract_dispute.txt",
-        "report_date": "2025-08-11",
-        "report_type": "契約問題報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 埼玉県川口市基地局建設 場所: 埼玉県川口市 担当者: 佐藤次郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.016794681549072266,
-    "added_at": "2025-08-11T13:55:01.085948"
+    "description": "プロジェクト名: 新宿センター西基地局建設 局名: 新宿センター西 局番: SJK-002 場所: 東京都新宿区西新宿2-8-1 Aurora計画: 新設_5G屋上_28GHz試行 担当者: 佐藤次郎 現在フェーズ: 基本同意",
+    "embedding_time": 0.01996922492980957,
+    "added_at": "2025-08-21T01:37:13.876868"
   },
-  "KNG-2024-007": {
-    "project_id": "KNG-2024-007",
-    "project_name": "神奈川県横浜市青葉区基地局",
-    "location": "神奈川県横浜市青葉区",
-    "current_phase": "工事実施",
-    "start_date": "2024-08-01",
-    "estimated_completion": "2025-09-30",
-    "responsible_person": "鈴木三郎",
-    "reports": [
-      {
-        "file_name": "report_004_normal_progress.txt",
-        "report_date": "2024-12-12",
-        "report_type": "定期進捗報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_010_normal_inspection.txt",
-        "report_date": "2024-12-18",
-        "report_type": "検査完了報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_017_environmental_concern.txt",
-        "report_date": "2025-08-09",
-        "report_type": "環境問題報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 神奈川県横浜市青葉区基地局 場所: 神奈川県横浜市青葉区 担当者: 鈴木三郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.015659809112548828,
-    "added_at": "2025-08-11T13:55:01.101712"
-  },
-  "CHB-2024-005": {
-    "project_id": "CHB-2024-005",
-    "project_name": "千葉県柏市基地局増設",
-    "location": "千葉県柏市",
-    "current_phase": "工事実施",
-    "start_date": "2024-11-01",
-    "estimated_completion": "2025-12-28",
-    "responsible_person": "高橋四郎",
-    "reports": [
-      {
-        "file_name": "report_002_license_approval_pending.txt",
-        "report_date": "2024-12-08",
-        "report_type": "行政手続き報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_014_normal_routine.txt",
-        "report_date": "2025-08-10",
-        "report_type": "定期作業報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 千葉県柏市基地局増設 場所: 千葉県柏市 担当者: 高橋四郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.015540122985839844,
-    "added_at": "2025-08-11T13:55:01.117359"
-  },
-  "OSK-2024-009": {
-    "project_id": "OSK-2024-009",
-    "project_name": "大阪府堺市基地局新設",
-    "location": "大阪府堺市",
-    "current_phase": "工事実施",
-    "start_date": "2024-10-15",
+  "MO0003": {
+    "project_id": "MO0003",
+    "project_name": "神田末広北基地局建設",
+    "station_name": "神田末広北",
+    "station_number": "KND-031",
+    "location": "東京都千代田区外神田4-3-1",
+    "aurora_plan": "新設_L800局_省スペース型",
+    "current_phase": "基本図承認",
+    "start_date": "2025-07-01",
     "estimated_completion": "2025-11-15",
+    "responsible_person": "鈴木三郎",
+    "description": "プロジェクト名: 神田末広北基地局建設 局名: 神田末広北 局番: KND-031 場所: 東京都千代田区外神田4-3-1 Aurora計画: 新設_L800局_省スペース型 担当者: 鈴木三郎 現在フェーズ: 基本図承認",
+    "embedding_time": 0.01781010627746582,
+    "added_at": "2025-08-21T01:37:13.894947"
+  },
+  "MO0004": {
+    "project_id": "MO0004",
+    "project_name": "渋谷スカイビル基地局建設",
+    "station_name": "渋谷スカイビル",
+    "station_number": "SBY-044",
+    "location": "東京都渋谷区渋谷2-2-1",
+    "aurora_plan": "新設_5G屋内_Sub6対応",
+    "current_phase": "置局発注",
+    "start_date": "2025-09-01",
+    "estimated_completion": "2025-12-31",
+    "responsible_person": "高橋四郎",
+    "description": "プロジェクト名: 渋谷スカイビル基地局建設 局名: 渋谷スカイビル 局番: SBY-044 場所: 東京都渋谷区渋谷2-2-1 Aurora計画: 新設_5G屋内_Sub6対応 担当者: 高橋四郎 現在フェーズ: 置局発注",
+    "embedding_time": 0.018796443939208984,
+    "added_at": "2025-08-21T01:37:13.913989"
+  },
+  "MO0005": {
+    "project_id": "MO0005",
+    "project_name": "池袋サウスゲート基地局増設",
+    "station_name": "池袋サウスゲート",
+    "station_number": "IKB-055",
+    "location": "東京都豊島区南池袋1-28-2",
+    "aurora_plan": "増設_RRH 3Sector_2GHz",
+    "current_phase": "附帯着工",
+    "start_date": "2025-07-01",
+    "estimated_completion": "2026-02-14",
     "responsible_person": "伊藤五郎",
-    "reports": [
-      {
-        "file_name": "report_009_severe_weather_initial.txt",
-        "report_date": "2024-11-30",
-        "report_type": "定期進捗報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_005_weather_delay_minor.txt",
-        "report_date": "2024-12-05",
-        "report_type": "遅延報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_009_severe_weather.txt",
-        "report_date": "2024-12-14",
-        "report_type": "緊急事態報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 大阪府堺市基地局新設 場所: 大阪府堺市 担当者: 伊藤五郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.015217781066894531,
-    "added_at": "2025-08-11T13:55:01.132681"
+    "description": "プロジェクト名: 池袋サウスゲート基地局増設 局名: 池袋サウスゲート 局番: IKB-055 場所: 東京都豊島区南池袋1-28-2 Aurora計画: 増設_RRH 3Sector_2GHz 担当者: 伊藤五郎 現在フェーズ: 附帯着工",
+    "embedding_time": 0.016310930252075195,
+    "added_at": "2025-08-21T01:37:13.930535"
   },
-  "FKU-2024-012": {
-    "project_id": "FKU-2024-012",
-    "project_name": "福岡県博多区基地局建設",
-    "location": "福岡県博多区",
-    "current_phase": "工事実施",
-    "start_date": "2024-09-20",
-    "estimated_completion": "2025-10-20",
+  "MO0006": {
+    "project_id": "MO0006",
+    "project_name": "銀座テラス南基地局建設",
+    "station_name": "銀座テラス南",
+    "station_number": "GNZ-106",
+    "location": "東京都中央区銀座7-12-3",
+    "aurora_plan": "新設_5G屋上_28GHz試行",
+    "current_phase": "基本同意",
+    "start_date": "2025-08-01",
+    "estimated_completion": "2026-02-20",
     "responsible_person": "渡辺六郎",
-    "reports": [
-      {
-        "file_name": "report_006_design_change_required.txt",
-        "report_date": "2024-12-11",
-        "report_type": "設計変更報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_016_normal_installation.txt",
-        "report_date": "2025-08-07",
-        "report_type": "設置作業報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 福岡県博多区基地局建設 場所: 福岡県博多区 担当者: 渡辺六郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.032137393951416016,
-    "added_at": "2025-08-11T13:55:01.164918"
+    "description": "プロジェクト名: 銀座テラス南基地局建設 局名: 銀座テラス南 局番: GNZ-106 場所: 東京都中央区銀座7-12-3 Aurora計画: 新設_5G屋上_28GHz試行 担当者: 渡辺六郎 現在フェーズ: 基本同意",
+    "embedding_time": 0.01589035987854004,
+    "added_at": "2025-08-21T01:37:13.946614"
   },
-  "SND-2024-015": {
-    "project_id": "SND-2024-015",
-    "project_name": "仙台市青葉区基地局建設",
-    "location": "宮城県仙台市青葉区",
-    "current_phase": "工事実施",
-    "start_date": "2024-11-10",
-    "estimated_completion": "2026-01-10",
+  "MO0007": {
+    "project_id": "MO0007",
+    "project_name": "赤坂タワー東基地局増設",
+    "station_name": "赤坂タワー東",
+    "station_number": "AKS-207",
+    "location": "東京都港区赤坂5-5-8",
+    "aurora_plan": "増設_RRH 2Sector_2GHz",
+    "current_phase": "基本同意",
+    "start_date": "2025-07-29",
+    "estimated_completion": "2025-12-10",
     "responsible_person": "松本七郎",
-    "reports": [
-      {
-        "file_name": "report_007_permission_delay.txt",
-        "report_date": "2024-12-13",
-        "report_type": "許可遅延報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_015_administrative_delay.txt",
-        "report_date": "2025-08-06",
-        "report_type": "行政遅延報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 仙台市青葉区基地局建設 場所: 宮城県仙台市青葉区 担当者: 松本七郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01915431022644043,
-    "added_at": "2025-08-11T13:55:01.184171"
+    "description": "プロジェクト名: 赤坂タワー東基地局増設 局名: 赤坂タワー東 局番: AKS-207 場所: 東京都港区赤坂5-5-8 Aurora計画: 増設_RRH 2Sector_2GHz 担当者: 松本七郎 現在フェーズ: 基本同意",
+    "embedding_time": 0.018419265747070312,
+    "added_at": "2025-08-21T01:37:13.965446"
   },
-  "NGY-2024-018": {
-    "project_id": "NGY-2024-018",
-    "project_name": "名古屋市中区基地局増設",
-    "location": "愛知県名古屋市中区",
-    "current_phase": "工事実施",
-    "start_date": "2024-10-01",
-    "estimated_completion": "2025-12-01",
+  "MO0008": {
+    "project_id": "MO0008",
+    "project_name": "船橋物流センター北基地局建設",
+    "station_name": "船橋物流センター北",
+    "station_number": "FNB-308",
+    "location": "千葉県船橋市浜町2-2-1",
+    "aurora_plan": "新設_L800局_省スペース型",
+    "current_phase": "置局発注",
+    "start_date": "2025-08-10",
+    "estimated_completion": "未定",
     "responsible_person": "小林八郎",
-    "reports": [
-      {
-        "file_name": "report_008_normal_maintenance.txt",
-        "report_date": "2024-12-16",
-        "report_type": "保守作業報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_012_normal_completion.txt",
-        "report_date": "2024-12-20",
-        "report_type": "完了報告",
-        "is_latest": false
-      },
-      {
-        "file_name": "report_019_normal_testing.txt",
-        "report_date": "2025-08-05",
-        "report_type": "テスト実施報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 名古屋市中区基地局増設 場所: 愛知県名古屋市中区 担当者: 小林八郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.0157473087310791,
-    "added_at": "2025-08-11T13:55:01.200026"
-  },
-  "HKD-2024-021": {
-    "project_id": "HKD-2024-021",
-    "project_name": "北海道札幌市5G基地局建設",
-    "location": "北海道札幌市中央区",
-    "current_phase": "完了",
-    "start_date": "2024-03-01",
-    "estimated_completion": "2024-07-15",
-    "responsible_person": "北村九郎",
-    "reports": [
-      {
-        "file_name": "report_021_hokkaido_completion.txt",
-        "report_date": "2024-07-15",
-        "report_type": "完了報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 北海道札幌市5G基地局建設 場所: 北海道札幌市中央区 担当者: 北村九郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.018617630004882812,
-    "added_at": "2025-08-11T13:55:01.218781"
-  },
-  "OKN-2024-024": {
-    "project_id": "OKN-2024-024",
-    "project_name": "沖縄県那覇市基地局増設",
-    "location": "沖縄県那覇市",
-    "current_phase": "完了",
-    "start_date": "2024-04-10",
-    "estimated_completion": "2024-08-05",
-    "responsible_person": "島袋十郎",
-    "reports": [
-      {
-        "file_name": "report_022_okinawa_completion.txt",
-        "report_date": "2024-08-05",
-        "report_type": "完了報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 沖縄県那覇市基地局増設 場所: 沖縄県那覇市 担当者: 島袋十郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01568770408630371,
-    "added_at": "2025-08-11T13:55:01.234588"
-  },
-  "HRS-2024-027": {
-    "project_id": "HRS-2024-027",
-    "project_name": "広島県広島市基地局更新",
-    "location": "広島県広島市中区",
-    "current_phase": "工事実施",
-    "start_date": "2024-06-01",
-    "estimated_completion": "2025-09-30",
-    "responsible_person": "山田十一郎",
-    "reports": [
-      {
-        "file_name": "report_023_hiroshima_progress.txt",
-        "report_date": "2025-08-10",
-        "report_type": "進捗報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 広島県広島市基地局更新 場所: 広島県広島市中区 担当者: 山田十一郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01722574234008789,
-    "added_at": "2025-08-11T13:55:01.251915"
-  },
-  "KYT-2024-030": {
-    "project_id": "KYT-2024-030",
-    "project_name": "京都府京都市基地局新設",
-    "location": "京都府京都市左京区",
-    "current_phase": "工事実施",
-    "start_date": "2024-07-15",
-    "estimated_completion": "2025-10-20",
-    "responsible_person": "田村十二郎",
-    "reports": [
-      {
-        "file_name": "report_024_kyoto_progress.txt",
-        "report_date": "2025-08-08",
-        "report_type": "進捗報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 京都府京都市基地局新設 場所: 京都府京都市左京区 担当者: 田村十二郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.016165733337402344,
-    "added_at": "2025-08-11T13:55:01.268183"
-  },
-  "NIG-2024-033": {
-    "project_id": "NIG-2024-033",
-    "project_name": "新潟県新潟市基地局建設",
-    "location": "新潟県新潟市中央区",
-    "current_phase": "工事実施",
-    "start_date": "2024-05-20",
-    "estimated_completion": "2025-09-15",
-    "responsible_person": "佐々木十三郎",
-    "reports": [
-      {
-        "file_name": "report_025_niigata_delay.txt",
-        "report_date": "2025-08-09",
-        "report_type": "遅延報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 新潟県新潟市基地局建設 場所: 新潟県新潟市中央区 担当者: 佐々木十三郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01921534538269043,
-    "added_at": "2025-08-11T13:55:01.287527"
-  },
-  "SHZ-2024-036": {
-    "project_id": "SHZ-2024-036",
-    "project_name": "静岡県静岡市基地局増設",
-    "location": "静岡県静岡市葵区",
-    "current_phase": "完了",
-    "start_date": "2024-02-15",
-    "estimated_completion": "2024-06-30",
-    "responsible_person": "遠藤十四郎",
-    "reports": [
-      {
-        "file_name": "report_026_shizuoka_completion.txt",
-        "report_date": "2024-06-30",
-        "report_type": "完了報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 静岡県静岡市基地局増設 場所: 静岡県静岡市葵区 担当者: 遠藤十四郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.017150402069091797,
-    "added_at": "2025-08-11T13:55:01.304824"
-  },
-  "GNM-2024-039": {
-    "project_id": "GNM-2024-039",
-    "project_name": "群馬県前橋市基地局新設",
-    "location": "群馬県前橋市",
-    "current_phase": "工事実施",
-    "start_date": "2024-08-01",
-    "estimated_completion": "2025-11-10",
-    "responsible_person": "吉田十五郎",
-    "reports": [
-      {
-        "file_name": "report_027_gunma_startup.txt",
-        "report_date": "2025-08-05",
-        "report_type": "開始報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 群馬県前橋市基地局新設 場所: 群馬県前橋市 担当者: 吉田十五郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01694941520690918,
-    "added_at": "2025-08-11T13:55:01.321890"
-  },
-  "YKH-2024-015": {
-    "project_id": "YKH-2024-015",
-    "project_name": "横浜市港北区5G基地局新設工事",
-    "location": "神奈川県横浜市港北区",
-    "current_phase": "設置交渉",
-    "start_date": "2024-12-01",
-    "estimated_completion": "2025-10-30",
-    "responsible_person": "佐々木花子",
-    "reports": [
-      {
-        "file_name": "report_028_no_project_id.txt",
-        "report_date": "2025-08-12",
-        "report_type": "進捗報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 横浜市港北区5G基地局新設工事 場所: 神奈川県横浜市港北区 担当者: 佐々木花子 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01610589027404785,
-    "added_at": "2025-08-11T13:55:01.338161"
-  },
-  "CHB-2024-016": {
-    "project_id": "CHB-2024-016",
-    "project_name": "千葉県市川市アンテナ設置",
-    "location": "千葉県市川市",
-    "current_phase": "免許申請",
-    "start_date": "2024-10-15",
-    "estimated_completion": "2025-09-30",
-    "responsible_person": "高橋次郎",
-    "reports": [
-      {
-        "file_name": "report_029_variant_name.txt",
-        "report_date": "2025-08-11",
-        "report_type": "定期報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 千葉県市川市アンテナ設置 場所: 千葉県市川市 担当者: 高橋次郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01798868179321289,
-    "added_at": "2025-08-11T13:55:01.356310"
-  },
-  "OSK-2024-017": {
-    "project_id": "OSK-2024-017",
-    "project_name": "大阪府大阪市淀川区基地局建設",
-    "location": "大阪府大阪市淀川区",
-    "current_phase": "工事実施",
-    "start_date": "2024-08-01",
-    "estimated_completion": "2025-07-31",
-    "responsible_person": "山田太郎",
-    "reports": [
-      {
-        "file_name": "report_030_location_only.txt",
-        "report_date": "2025-08-10",
-        "report_type": "作業報告",
-        "is_latest": true
-      }
-    ],
-    "description": "プロジェクト名: 大阪府大阪市淀川区基地局建設 場所: 大阪府大阪市淀川区 担当者: 山田太郎 工事種別: 通信基地局建設工事 工事内容: アンテナ設置・5G基地局・電波塔建設",
-    "embedding_time": 0.01900315284729004,
-    "added_at": "2025-08-11T13:55:01.375454"
+    "description": "プロジェクト名: 船橋物流センター北基地局建設 局名: 船橋物流センター北 局番: FNB-308 場所: 千葉県船橋市浜町2-2-1 Aurora計画: 新設_L800局_省スペース型 担当者: 小林八郎 現在フェーズ: 置局発注",
+    "embedding_time": 0.01905369758605957,
+    "added_at": "2025-08-21T01:37:13.984695"
   }
 }

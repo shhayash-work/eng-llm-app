@@ -38,13 +38,16 @@ class ProjectMapper:
         
         # ベクターマッパー初期化（オプショナル）
         self.vector_mapper = None
+        logger.info(f"VECTOR_SEARCH_AVAILABLE: {VECTOR_SEARCH_AVAILABLE}")
         if VECTOR_SEARCH_AVAILABLE:
             try:
                 self.vector_mapper = ProjectVectorMapper()
-                logger.info("Vector search enabled")
+                logger.info("Vector search enabled successfully")
             except Exception as e:
-                logger.warning(f"Failed to initialize vector mapper: {e}")
+                logger.error(f"Failed to initialize vector mapper: {e}")
                 self.vector_mapper = None
+        else:
+            logger.warning("Vector search module not available (import failed)")
         
     def _load_project_master(self) -> List[Dict]:
         """プロジェクトマスターデータ読み込み"""
@@ -123,7 +126,18 @@ class ProjectMapper:
             logger.info(f"Vector search completed: {vector_mapping.project_id} (confidence: {vector_mapping.confidence_score:.3f})")
             return vector_mapping
         else:
-            logger.warning("Vector search unavailable, returning failed direct mapping")
+            logger.warning(f"Vector search unavailable, returning failed direct mapping. VECTOR_SEARCH_AVAILABLE: {VECTOR_SEARCH_AVAILABLE}")
+            # ベクターサーチが利用できない場合でも、マスターデータから最初のプロジェクトを返す
+            if self.project_master:
+                fallback_project = self.project_master[0]
+                logger.info(f"Using fallback project: {fallback_project['project_id']}")
+                return ProjectMapping(
+                    project_id=fallback_project['project_id'],
+                    confidence_score=0.1,  # 低い信頼度
+                    matching_method="fallback_first_project",
+                    alternative_candidates=[],
+                    extracted_info={"reason": "Vector search unavailable, using fallback"}
+                )
             return direct_mapping
     
     def _strategy_direct_id_extraction(self, content: str, llm_info: Dict) -> ProjectMapping:
@@ -192,6 +206,10 @@ class ProjectMapper:
             r'工事名[：:\s]*([^\n\r]+)',
             r'案件名[：:\s]*([^\n\r]+)',
             r'建設工事[：:\s]*([^\n\r]+)',
+            r'局名[：:\s]*([^\n\r]+)',
+            r'auRoraプラン名[：:\s]*([^\n\r]+)',
+            r'プラン名[：:\s]*([^\n\r]+)',
+            r'局番[：:\s]*([^\n\r]+)',
         ]
         
         for pattern in name_patterns:
@@ -203,7 +221,7 @@ class ProjectMapper:
     # 類似度計算関数削除：ファジーマッチング廃止のため不要
     
     def _strategy_vector_search(self, content: str, llm_info: Dict) -> ProjectMapping:
-        """戦略3: ベクターサーチによるセマンティックマッチング"""
+        """戦略3: ベクターサーチによるセマンティックマッチング（改善版：LLM抽出情報のみ使用）"""
         
         if not self.vector_mapper:
             return ProjectMapping(
@@ -215,27 +233,30 @@ class ProjectMapper:
             )
         
         try:
-            # 検索クエリ作成
+            # 検索クエリ作成（LLM抽出情報のみ使用）
             query_parts = []
             
-            # LLM抽出情報から追加
+            # LLM抽出情報から追加（プロジェクトマスターと同じ構造）
             if 'project_info' in llm_info and llm_info['project_info']:
                 project_info = llm_info['project_info']
+                
+                # 優先度順に追加
+                if project_info.get('station_name'):
+                    query_parts.append(f"局名: {project_info['station_name']}")
+                
                 if project_info.get('location'):
-                    query_parts.append(project_info['location'])
+                    query_parts.append(f"場所: {project_info['location']}")
+                
+                if project_info.get('station_number'):
+                    query_parts.append(f"局番: {project_info['station_number']}")
+                
+                if project_info.get('aurora_plan'):
+                    query_parts.append(f"Aurora計画: {project_info['aurora_plan']}")
+                
+                if project_info.get('responsible_person'):
+                    query_parts.append(f"担当者: {project_info['responsible_person']}")
             
-            # コンテンツから場所・プロジェクト名抽出
-            content_locations = self._extract_locations_from_content(content)
-            content_names = self._extract_project_names_from_content(content)
-            
-            query_parts.extend(content_locations)
-            query_parts.extend(content_names)
-            
-            # 建設工事キーワード追加
-            construction_keywords = ["基地局", "アンテナ", "5G", "建設", "工事"]
-            query_parts.extend(construction_keywords)
-            
-            query_text = " ".join(query_parts[:10])  # 最大10要素まで
+            query_text = " ".join(query_parts)  # LLM抽出情報のみ
             
             if not query_text.strip():
                 return ProjectMapping(
@@ -246,11 +267,11 @@ class ProjectMapper:
                     extracted_info={}
                 )
             
-            # ベクター検索実行
+            # ベクター検索実行（閾値0.0で必ず最高スコアのプロジェクトにマッピング）
             search_results = self.vector_mapper.search_similar_projects(
                 query_text=query_text,
                 top_k=5,
-                similarity_threshold=0.4
+                similarity_threshold=0.0  # 閾値0.0で必ずマッピング
             )
             
             if search_results:

@@ -28,6 +28,16 @@ logger = logging.getLogger(__name__)
 if PyPDF2 is None:
     logger.warning("PyPDF2/pypdf not available. PDF reading will be disabled.")
 
+def calculate_risk_level_enum(urgency_score: int) -> 'RiskLevel':
+    """urgency_scoreから表示用リスクレベルを算出"""
+    from app.models.report import RiskLevel
+    if urgency_score >= 7:
+        return RiskLevel.HIGH
+    elif urgency_score >= 4:
+        return RiskLevel.MEDIUM
+    else:
+        return RiskLevel.LOW
+
 class DocumentProcessor:
     """文書処理クラス"""
     
@@ -132,36 +142,74 @@ class DocumentProcessor:
         return text
     
     def _read_docx_file(self, file_path: Path) -> str:
-        """Wordファイルを読み込み"""
+        """Wordファイルを読み込み（汎用的）"""
         text = ""
         try:
             doc = Document(file_path)
+            
+            # 段落を読み込み
             for paragraph in doc.paragraphs:
-                text += paragraph.text + "\\n"
+                para_text = paragraph.text.strip()
+                if para_text:
+                    # 一般的なデータクリーニング
+                    para_text = para_text.replace('\\t', ' ')
+                    para_text = ' '.join(para_text.split())  # 複数空白を1つに
+                    text += para_text + "\\n"
+            
+            # 表を読み込み
+            for table in doc.tables:
+                text += "\\n表:\\n"
+                for row in table.rows:
+                    row_data = []
+                    for cell in row.cells:
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            # 一般的なデータクリーニング
+                            cell_text = cell_text.replace('\\n', ' ').replace('\\t', ' ')
+                            cell_text = ' '.join(cell_text.split())  # 複数空白を1つに
+                            if cell_text not in ['', '-', '−', '該当なし', 'なし']:
+                                row_data.append(cell_text)
+                    if row_data:
+                        text += " | ".join(row_data) + "\\n"
+                        
         except Exception as e:
             logger.error(f"DOCX reading failed: {e}")
         return text
     
     def _read_xlsx_file(self, file_path: Path) -> str:
-        """Excelファイルを読み込み"""
+        """Excelファイルを読み込み（汎用的）"""
         text = ""
         try:
             workbook = load_workbook(file_path, data_only=True)
+            
             for sheet_name in workbook.sheetnames:
                 sheet = workbook[sheet_name]
-                text += f"シート: {sheet_name}\\n"
+                text += f"\\nシート: {sheet_name}\\n"
                 
+                # 全セルの内容を順次抽出
                 for row in sheet.iter_rows(values_only=True):
-                    row_text = "\\t".join([str(cell) if cell is not None else "" for cell in row])
-                    if row_text.strip():
-                        text += row_text + "\\n"
+                    row_values = []
+                    for cell_value in row:
+                        if cell_value is not None:
+                            # 一般的なデータクリーニング
+                            clean_value = str(cell_value).strip()
+                            # 不要文字の削除（改行、タブ、余分な空白）
+                            clean_value = clean_value.replace('\\n', ' ').replace('\\t', ' ')
+                            clean_value = ' '.join(clean_value.split())  # 複数空白を1つに
+                            # 空文字でない場合のみ追加
+                            if clean_value and clean_value not in ['nan', 'None', 'NULL', '#N/A']:
+                                row_values.append(clean_value)
+                    
+                    if row_values:
+                        text += " | ".join(row_values) + "\\n"
+                        
         except Exception as e:
             logger.error(f"XLSX reading failed: {e}")
         return text
     
     def _create_report_from_unified_analysis(self, file_path: Path, content: str, llm_result: Dict[str, Any]) -> DocumentReport:
         """統合LLM分析結果からDocumentReportを作成"""
-        from app.models.report import StatusFlag, CategoryLabel, RiskLevel
+        from app.models.report import StatusFlag, RiskLevel
         from app.services.project_mapper import ProjectMapper
         
         # レポートタイプの設定
@@ -189,22 +237,41 @@ class DocumentProcessor:
         # 🎯 プロジェクトマッピング（直接ID + ベクター検索）
         self._apply_project_mapping(report, llm_result)
         
-        # 🏷️ 新フラグ体系の適用
-        self._apply_unified_flag_system(report, llm_result)
+        # 🏷️ 新フラグ体系の適用（簡略化）
+        # StatusFlag設定（LLMから直接取得）
+        llm_status_flag = llm_result.get('status_flag')
+        if llm_status_flag:
+            if llm_status_flag == '停止':
+                report.status_flag = StatusFlag.STOPPED
+            elif llm_status_flag == '重大な遅延':
+                report.status_flag = StatusFlag.MAJOR_DELAY
+            elif llm_status_flag == '軽微な遅延':
+                report.status_flag = StatusFlag.MINOR_DELAY
+            elif llm_status_flag == '順調':
+                report.status_flag = StatusFlag.NORMAL
+            else:
+                report.status_flag = StatusFlag.NORMAL
+        else:
+            report.status_flag = StatusFlag.NORMAL
+            
+        # RiskLevel設定（urgency_scoreから連動ルールで算出）
+        urgency_score = llm_result.get('urgency_score', 1)
+        report.urgency_score = urgency_score
+        report.risk_level = calculate_risk_level_enum(urgency_score)
         
         # 🔍 建設工程情報の設定
-        report.current_construction_phase = llm_result.get('current_construction_phase', '不明')
+        report.current_construction_phase = llm_result.get('construction_phase', '不明')
         report.construction_progress = llm_result.get('construction_progress', {})
         
-        # 📋 後方互換性のためのAnalysisResult作成
+        # 🚧 遅延理由情報の設定（15カテゴリ体系）
+        report.delay_reasons = llm_result.get('delay_reasons', [])
+        
+        # current_status処理削除: status_flagで統一
+        
+        # 📋 AnalysisResult作成（簡素化）
         report.analysis_result = AnalysisResult(
-            project_info=llm_result.get('project_info', {}),
-            status=llm_result.get('status', '不明'),
-            issues=llm_result.get('issues', []),
-            risk_level=llm_result.get('risk_level', '低'),
-            recommended_flags=llm_result.get('category_labels', []),  # 後方互換性
             summary=llm_result.get('summary', '分析結果なし'),
-            urgency_score=llm_result.get('urgency_score', 1),
+            issues=llm_result.get('issues', []),
             key_points=llm_result.get('key_points', []),
             confidence=report.analysis_confidence
         )
@@ -228,8 +295,8 @@ class DocumentProcessor:
             'file_path': report.file_path,
             'report_type': report.report_type.value,
             'created_at': report.created_at.isoformat(),
-            'risk_level': report.analysis_result.risk_level if report.analysis_result else '低',
-            'urgency_score': report.analysis_result.urgency_score if report.analysis_result else 1
+            'risk_level': report.risk_level.value if report.risk_level else '低',
+            'urgency_score': getattr(report, 'urgency_score', 1)
         }
         
         return self.vector_store.add_document(report.content, metadata)
@@ -274,80 +341,3 @@ class DocumentProcessor:
             report.has_unexpected_values = True
             report.validation_issues.append(f"プロジェクトマッピングエラー: {str(e)}")
     
-    def _apply_unified_flag_system(self, report: DocumentReport, llm_result: Dict[str, Any]):
-        """統合分析結果から新フラグ体系を適用"""
-        try:
-            from app.models.report import StatusFlag, CategoryLabel, RiskLevel
-            
-            # 🚨 想定外値フラグを初期化
-            report.has_unexpected_values = False
-            report.validation_issues = []
-            
-            # StatusFlag設定
-            llm_status_flag = llm_result.get('status_flag')
-            if llm_status_flag and llm_status_flag in [e.value for e in StatusFlag]:
-                report.status_flag = StatusFlag(llm_status_flag)
-            else:
-                report.status_flag = None
-                report.has_unexpected_values = True
-                if llm_status_flag:
-                    report.validation_issues.append(f"StatusFlag: 無効値 '{llm_status_flag}'")
-                else:
-                    report.validation_issues.append("StatusFlag: LLM出力なし")
-            
-            # CategoryLabel設定
-            llm_category_labels = llm_result.get('category_labels', [])
-            categories = []
-            if llm_category_labels and isinstance(llm_category_labels, list):
-                valid_category_values = [e.value for e in CategoryLabel]
-                for cat in llm_category_labels:
-                    if cat in valid_category_values:
-                        categories.append(CategoryLabel(cat))
-                    else:
-                        report.has_unexpected_values = True
-                        report.validation_issues.append(f"CategoryLabel: 無効値 '{cat}'")
-            else:
-                report.has_unexpected_values = True
-                report.validation_issues.append("CategoryLabel: LLM出力なし")
-            
-            report.category_labels = categories if categories else None
-            
-            # RiskLevel設定
-            risk_level_str = llm_result.get('risk_level')
-            if risk_level_str:
-                if risk_level_str in ['高', 'HIGH']:
-                    report.risk_level = RiskLevel.HIGH
-                elif risk_level_str in ['中', 'MEDIUM']:
-                    report.risk_level = RiskLevel.MEDIUM
-                elif risk_level_str in ['低', 'LOW']:
-                    report.risk_level = RiskLevel.LOW
-                else:
-                    report.risk_level = None
-                    report.has_unexpected_values = True
-                    report.validation_issues.append(f"RiskLevel: 無効値 '{risk_level_str}'")
-            else:
-                report.risk_level = None
-                report.has_unexpected_values = True
-                report.validation_issues.append("RiskLevel: LLM出力なし")
-            
-            # 🔍 想定外値の検出ログ
-            if report.has_unexpected_values:
-                logger.warning(f"🚨 想定外値検出: {report.file_name}")
-                for issue in report.validation_issues:
-                    logger.warning(f"  - {issue}")
-            
-            # 正常処理の場合のログ
-            status_log = report.status_flag.value if report.status_flag else "None"
-            categories_log = [c.value for c in report.category_labels] if report.category_labels else "None"
-            risk_log = report.risk_level.value if report.risk_level else "None"
-            logger.info(f"🎯 Applied flags: status={status_log}, categories={categories_log}, risk={risk_log}")
-            
-        except Exception as e:
-            logger.error(f"統合フラグ体系適用失敗: {e}")
-            # 🚨 エラー時も想定外として記録
-            from app.models.report import StatusFlag, CategoryLabel, RiskLevel
-            report.status_flag = None
-            report.category_labels = None
-            report.risk_level = None
-            report.has_unexpected_values = True
-            report.validation_issues = [f"フラグ体系適用エラー: {str(e)}"]

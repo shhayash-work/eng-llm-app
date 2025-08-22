@@ -50,12 +50,12 @@ class VectorStoreService:
             settings=Settings(anonymized_telemetry=False)
         )
         
-        # Ollama埋め込みモデル設定（事前処理時のみ必要）
+        # Ollama埋め込みモデル設定
+        self.embedding_model_name = EMBEDDING_MODEL
+        self.ollama_client = ollama.Client()
+        
+        # テキスト分割器初期化（事前処理時のみ）
         if create_mode:
-            self.embedding_model_name = EMBEDDING_MODEL
-            self.ollama_client = ollama.Client()
-            
-            # テキスト分割器初期化（事前処理時のみ）
             self.text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=CHUNK_SIZE,
                 chunk_overlap=CHUNK_OVERLAP,

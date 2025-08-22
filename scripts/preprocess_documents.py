@@ -98,7 +98,7 @@ class PreprocessingService:
                         "processed_at": datetime.now().isoformat(),
                         "flags": ",".join([flag.value for flag in report.flags]) if report.flags else "",
                         "risk_level": report.risk_level.value if report.risk_level else "低",
-                        "has_anomaly": report.anomaly_detection.has_anomaly if report.anomaly_detection else False
+                        "has_anomaly": report.anomaly_detection.is_anomaly if report.anomaly_detection else False
                     }
                 )
                 
@@ -227,7 +227,7 @@ class PreprocessingService:
             
             # 🎯 新フラグ体系のシリアライズ
             "status_flag": report.status_flag.value if report.status_flag else None,
-            "category_labels": [cat.value for cat in report.category_labels] if report.category_labels else None,
+            # "category_labels" 削除: 15カテゴリ遅延理由体系に統一
             "risk_level": report.risk_level.value if report.risk_level else None,
             
             # 🚨 データ品質監視フィールド
@@ -237,21 +237,32 @@ class PreprocessingService:
             # 🤖 統合分析結果フィールド
             "requires_human_review": getattr(report, 'requires_human_review', False),
             "analysis_confidence": getattr(report, 'analysis_confidence', 0.0),
-            "analysis_notes": getattr(report, 'analysis_notes', None),
+            # "analysis_notes" 削除: summaryに統合
             
             # 🔍 建設工程情報
             "current_construction_phase": getattr(report, 'current_construction_phase', None),
             "construction_progress": getattr(report, 'construction_progress', None),
             
+            # 🚧 遅延理由情報（15カテゴリ体系）
+            "delay_reasons": getattr(report, 'delay_reasons', []),
+            
+            # 🎯 緊急度スコア
+            "urgency_score": getattr(report, 'urgency_score', 1),
+            
+            # current_status削除: status_flagで統一
+            
             "analysis_result": {
+                "summary": report.analysis_result.summary if report.analysis_result else "",
+                "issues": report.analysis_result.issues if report.analysis_result else [],
                 "key_points": ",".join(report.analysis_result.key_points) if report.analysis_result and report.analysis_result.key_points else "",
-                "recommended_flags": ",".join(report.analysis_result.recommended_flags) if report.analysis_result and report.analysis_result.recommended_flags else "",
                 "confidence": report.analysis_result.confidence if report.analysis_result else 0.0
             } if report.analysis_result else None,
             "anomaly_detection": {
-                "has_anomaly": report.anomaly_detection.has_anomaly if report.anomaly_detection else False,
-                "anomaly_score": report.anomaly_detection.anomaly_score if report.anomaly_detection else 0.0,
-                "explanation": report.anomaly_detection.explanation if report.anomaly_detection else ""
+                "is_anomaly": report.anomaly_detection.is_anomaly if report.anomaly_detection else False,
+                "anomaly_description": report.anomaly_detection.anomaly_description if report.anomaly_detection else "",
+                "confidence": report.anomaly_detection.confidence if report.anomaly_detection else 0.0,
+                "suggested_action": report.anomaly_detection.suggested_action if report.anomaly_detection else "",
+                "requires_human_review": report.anomaly_detection.requires_human_review if report.anomaly_detection else False
             } if report.anomaly_detection else None,
             "processed_at": datetime.now().isoformat()
         }

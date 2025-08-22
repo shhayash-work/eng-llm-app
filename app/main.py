@@ -317,7 +317,7 @@ def load_and_process_documents(llm_provider: str = "ollama") -> List[DocumentRep
 def _deserialize_report(data: Dict[str, Any]) -> Optional[DocumentReport]:
     """JSONデータからDocumentReportオブジェクトを復元"""
     try:
-        from app.models.report import StatusFlag, CategoryLabel, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection
+        from app.models.report import StatusFlag, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection
         
         report = DocumentReport(
             file_path=data["file_path"],
@@ -328,34 +328,39 @@ def _deserialize_report(data: Dict[str, Any]) -> Optional[DocumentReport]:
             project_id=data.get("project_id")  # プロジェクトID復元
         )
         
-        # AnalysisResult復元
+        # AnalysisResult復元（簡素化構造）
         if data.get("analysis_result"):
             analysis = data["analysis_result"]
             report.analysis_result = AnalysisResult(
+                summary=analysis.get("summary", ""),
+                issues=analysis.get("issues", []),
                 key_points=analysis.get("key_points", "").split(",") if analysis.get("key_points") else [],
-                recommended_flags=analysis.get("recommended_flags", "").split(",") if analysis.get("recommended_flags") else [],
                 confidence=float(analysis.get("confidence", 0.0))
             )
         
-        # AnomalyDetection復元
+        # AnomalyDetection復元（新構造）
         if data.get("anomaly_detection"):
             anomaly = data["anomaly_detection"]
             report.anomaly_detection = AnomalyDetection(
-                has_anomaly=bool(anomaly.get("has_anomaly", False)),
-                anomaly_score=float(anomaly.get("anomaly_score", 0.0)),
-                explanation=anomaly.get("explanation", "")
+                is_anomaly=bool(anomaly.get("is_anomaly", anomaly.get("has_anomaly", False))),  # 後方互換性
+                anomaly_description=anomaly.get("anomaly_description", anomaly.get("explanation", "")),  # 後方互換性
+                confidence=float(anomaly.get("confidence", 0.0)),
+                suggested_action=anomaly.get("suggested_action", ""),
+                requires_human_review=bool(anomaly.get("requires_human_review", False)),
+                similar_cases=anomaly.get("similar_cases", [])
             )
         
         # 新しいフラグ体系復元
         if data.get("status_flag"):
             report.status_flag = StatusFlag(data["status_flag"])
         
-        if data.get("category_labels"):
-            category_strs = data["category_labels"].split(",") if isinstance(data["category_labels"], str) else data["category_labels"]
-            report.category_labels = [CategoryLabel(cat.strip()) for cat in category_strs if cat.strip()]
+        # category_labels削除: 15カテゴリ遅延理由体系に統一
         
         if data.get("risk_level"):
             report.risk_level = RiskLevel(data["risk_level"])
+        
+        # urgency_score復元
+        report.urgency_score = data.get("urgency_score", 1)
         
         # データ品質監視フィールド復元
         report.has_unexpected_values = data.get("has_unexpected_values", False)
@@ -472,6 +477,367 @@ def render_sidebar() -> str:
         
         return page
 
+def load_confirmed_mappings():
+    """確定済みマッピング情報を読み込み"""
+    confirmed_file = Path("data/confirmed_mappings.json")
+    if confirmed_file.exists():
+        try:
+            with open(confirmed_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"確定済みマッピング読み込みエラー: {e}")
+    return {}
+
+def save_confirmed_mappings(confirmed_mappings: dict):
+    """確定済みマッピング情報を保存"""
+    confirmed_file = Path("data/confirmed_mappings.json")
+    try:
+        with open(confirmed_file, 'w', encoding='utf-8') as f:
+            json.dump(confirmed_mappings, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"確定済みマッピング保存エラー: {e}")
+
+def update_source_data(file_name: str, new_project_id: str):
+    """元データ（JSON/キャッシュファイル）を更新"""
+    try:
+        logger.info(f"Starting update_source_data: file_name={file_name}, new_project_id={new_project_id}")
+        
+        # JSONファイルの更新（複数の拡張子に対応）
+        base_name = file_name
+        for ext in ['.xlsx', '.docx', '.pdf', '.txt']:
+            base_name = base_name.replace(ext, '')
+        
+        json_file = Path(f"data/processed_reports/{base_name}.json")
+        logger.info(f"JSON file path: {json_file}")
+        
+        if not json_file.exists():
+            logger.error(f"JSON file does not exist: {json_file}")
+            logger.error(f"Original file_name: {file_name}, Base name: {base_name}")
+            # 処理済みディレクトリの内容をログ出力
+            processed_dir = Path("data/processed_reports")
+            if processed_dir.exists():
+                files = list(processed_dir.glob("*.json"))
+                logger.error(f"Available JSON files: {[f.name for f in files]}")
+            return False
+            
+        # ファイル読み込み
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            logger.info(f"Successfully loaded JSON file")
+        except Exception as e:
+            logger.error(f"Failed to load JSON file: {e}")
+            return False
+        
+        # プロジェクトIDを更新
+        old_project_id = data.get('project_id')
+        data['project_id'] = new_project_id
+        logger.info(f"Updated project_id: {old_project_id} -> {new_project_id}")
+        
+        # project_mapping_infoを更新
+        if data.get('project_mapping_info'):
+            data['project_mapping_info']['confidence_score'] = 1.0
+            data['project_mapping_info']['matching_method'] = 'manual_correction'
+            data['project_mapping_info']['extracted_info'] = {'manual_update': new_project_id}
+        else:
+            data['project_mapping_info'] = {
+                'confidence_score': 1.0,
+                'matching_method': 'manual_correction',
+                'alternative_candidates': [],
+                'extracted_info': {'manual_update': new_project_id}
+            }
+        logger.info("Updated project_mapping_info")
+        
+        # validation_issuesからプロジェクトマッピング関連を削除
+        if 'validation_issues' in data:
+            original_issues = len(data['validation_issues'])
+            data['validation_issues'] = [
+                issue for issue in data['validation_issues'] 
+                if 'プロジェクトマッピング' not in issue
+            ]
+            logger.info(f"Removed validation issues: {original_issues} -> {len(data['validation_issues'])}")
+            
+            if not data['validation_issues']:
+                data['has_unexpected_values'] = False
+                logger.info("Set has_unexpected_values to False")
+        
+        # JSONファイルを保存
+        try:
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"Successfully saved JSON file: {json_file}")
+        except Exception as e:
+            logger.error(f"Failed to save JSON file: {e}")
+            return False
+        
+        # キャッシュファイルも更新（存在する場合）
+        cache_file = json_file.with_suffix('.cache')
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+                logger.info(f"Deleted cache file for regeneration: {cache_file}")
+            except Exception as e:
+                logger.warning(f"Failed to delete cache file: {e}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"元データ更新エラー: {e}", exc_info=True)
+        return False
+
+def load_fresh_reports():
+    """最新のレポートデータを直接ファイルシステムから読み込み"""
+    try:
+        from app.utils.cache_loader import CacheLoader
+        processed_reports_dir = Path("data/processed_reports")
+        
+        if not processed_reports_dir.exists():
+            return []
+        
+        cache_loader = CacheLoader(max_workers=3)
+        reports = cache_loader.load_reports_parallel(processed_reports_dir)
+        logger.info(f"Fresh reports loaded: {len(reports)} reports")
+        return reports
+    except Exception as e:
+        logger.error(f"Fresh reports loading error: {e}")
+        return []
+
+def render_project_mapping_review(reports: List[DocumentReport]):
+    """プロジェクトマッピング信頼度管理"""
+    st.markdown("<div class='custom-header'>プロジェクトマッピング信頼度管理</div>", unsafe_allow_html=True)
+    st.markdown("ベクター検索によるプロジェクトマッピングの確認と修正")
+    
+    # セッション状態がクリアされている場合は最新データを読み込み
+    if 'reports' not in st.session_state:
+        fresh_reports = load_fresh_reports()
+        if fresh_reports:
+            reports = fresh_reports
+    
+    # 確定済みマッピングのクリーンアップ（事前処理再実行対応）
+    cleanup_confirmed_mappings(reports)
+    
+    # 永続メッセージの表示
+    if 'mapping_message' in st.session_state:
+        message_type, message_text = st.session_state.mapping_message
+        if message_type == 'success':
+            st.success(message_text)
+        elif message_type == 'error':
+            st.error(message_text)
+        elif message_type == 'warning':
+            st.warning(message_text)
+    
+    # リフレッシュボタンを追加
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col2:
+        if st.button("🔄 最新データを読み込み"):
+            # 最新のレポートデータを読み込み
+            fresh_reports = load_fresh_reports()
+            if fresh_reports:
+                reports = fresh_reports
+                st.session_state.mapping_message = ('success', f"✅ {len(reports)}件のレポートを読み込みました")
+            else:
+                st.session_state.mapping_message = ('warning', "⚠️ レポートの読み込みに失敗しました")
+            st.rerun()
+    
+    with col3:
+        if st.button("🗑️ メッセージクリア"):
+            if 'mapping_message' in st.session_state:
+                del st.session_state.mapping_message
+            st.rerun()
+    
+    # 手動クリーンアップボタン
+    if st.button("🧹 確定済みマッピングをクリーンアップ", help="事前処理再実行により不整合になった確定済みマッピングを削除します"):
+        cleanup_confirmed_mappings(reports)
+        st.rerun()
+    
+    if not reports:
+        st.info("レポートがありません。")
+        return
+    
+    # 永続化された確定済みマッピングを読み込み
+    persistent_confirmed = load_confirmed_mappings()
+    
+    # セッション状態と統合
+    if 'confirmed_mappings' not in st.session_state:
+        st.session_state.confirmed_mappings = {}
+    
+    # 永続化データをセッション状態に統合
+    for file_name, project_id in persistent_confirmed.items():
+        if file_name not in st.session_state.confirmed_mappings:
+            st.session_state.confirmed_mappings[file_name] = project_id
+    
+    # 信頼度が低いマッピングを抽出（更新失敗も含む）
+    low_confidence_reports = []
+    confirmed_mappings = st.session_state.get('confirmed_mappings', {})
+    
+    for report in reports:
+        is_confirmed = report.file_name in confirmed_mappings
+        is_update_failed = False
+        
+        # 更新失敗の判定（確定済みだが実際のファイルが更新されていない）
+        if is_confirmed:
+            expected_project_id = confirmed_mappings[report.file_name]
+            if report.project_id != expected_project_id:
+                is_update_failed = True
+                # 期待値を保存（表示用）
+                report._expected_project_id = expected_project_id
+        
+        # 表示対象の判定
+        should_show = False
+        
+        # 1. project_mapping_infoがあり、ベクター検索を使用した場合（閾値なし）
+        if (hasattr(report, 'project_mapping_info') and 
+            report.project_mapping_info and 
+            report.project_mapping_info.get('matching_method') == 'vector_search'):
+            should_show = True
+            
+        # 2. プロジェクトマッピング失敗（project_id=None）の場合
+        elif (report.project_id is None and 
+              hasattr(report, 'validation_issues') and
+              any('プロジェクトマッピング' in issue for issue in report.validation_issues)):
+            should_show = True
+            # マッピング失敗の理由を詳細表示用に設定
+            if hasattr(report, 'project_mapping_info') and report.project_mapping_info:
+                method = report.project_mapping_info.get('matching_method', 'mapping_failed')
+                if method == 'mapping_failed':
+                    report.project_mapping_info['matching_method'] = 'ベクターキャッシュ未初期化'
+                elif method == 'vector_search_unavailable':
+                    report.project_mapping_info['matching_method'] = 'ベクター検索利用不可'
+                elif method == 'direct_id_failed':
+                    report.project_mapping_info['matching_method'] = 'プロジェクトID抽出失敗'
+            
+        # 3. 更新失敗の場合
+        elif is_update_failed:
+            should_show = True
+            
+        if should_show:
+            # 更新失敗フラグを追加
+            report._update_failed = is_update_failed
+            low_confidence_reports.append(report)
+    
+    # 信頼度の低い順でソート（マッピング失敗は信頼度0として扱う）
+    def get_confidence(report):
+        if report.project_mapping_info:
+            return report.project_mapping_info.get('confidence_score', 1.0)
+        else:
+            return 0.0  # マッピング失敗は最低信頼度
+    
+    low_confidence_reports.sort(key=get_confidence)
+    
+    if not low_confidence_reports:
+        st.success("✅ すべてのプロジェクトマッピングが確定済みまたは高信頼度です。")
+        return
+    
+    st.warning(f"⚠️ 信頼度が低いプロジェクトマッピング: {len(low_confidence_reports)}件")
+    
+    # プロジェクトマスタを読み込み
+    try:
+        import json
+        with open('/home/share/eng-llm-app/data/sample_construction_data/project_reports_mapping.json', 'r', encoding='utf-8') as f:
+            project_master = json.load(f)
+        project_options = {p['project_id']: f"{p['project_id']} - {p['project_name']}" for p in project_master}
+    except Exception as e:
+        st.error(f"プロジェクトマスタの読み込みに失敗しました: {e}")
+        return
+    
+    # 各レポートの確認
+    for i, report in enumerate(low_confidence_reports[:10]):  # 最大10件表示
+        if report.project_mapping_info:
+            mapping_info = report.project_mapping_info
+            confidence = mapping_info.get('confidence_score', 0.0)
+            method = mapping_info.get('matching_method', 'unknown')
+        else:
+            # マッピング失敗の場合
+            confidence = 0.0
+            method = 'mapping_failed'
+            mapping_info = {}
+        
+        # 更新失敗の場合は特別な表示
+        is_update_failed = getattr(report, '_update_failed', False)
+        status_icon = "❌" if is_update_failed else "📄"
+        status_text = " (更新失敗)" if is_update_failed else ""
+        
+        with st.expander(f"{status_icon} {report.file_name} (信頼度: {confidence:.2f}){status_text}"):
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.write(f"**現在のマッピング:** {report.project_id or '失敗'}")
+                st.write(f"**信頼度スコア:** {confidence:.2f}")
+                st.write(f"**マッピング手法:** {method}")
+                
+                # 更新失敗の場合は詳細を表示
+                if is_update_failed:
+                    expected_id = getattr(report, '_expected_project_id', '不明')
+                    st.error(f"⚠️ **ファイル更新失敗**: 手動設定値 {expected_id} がファイルに反映されていません（現在値: {report.project_id or 'None'}）")
+                
+                if mapping_info.get('extracted_info'):
+                    st.write("**抽出された情報:**")
+                    for key, value in mapping_info['extracted_info'].items():
+                        st.write(f"• {key}: {value}")
+                
+                # 検証問題の表示
+                if hasattr(report, 'validation_issues') and report.validation_issues:
+                    st.write("**検出された問題:**")
+                    for issue in report.validation_issues:
+                        if 'プロジェクトマッピング' in issue:
+                            st.write(f"• {issue}")
+            
+            with col2:
+                # 確定ボタン
+                if st.button("✅ 確定", key=f"confirm_{i}"):
+                    # セッション状態に確定情報を保存
+                    if 'confirmed_mappings' not in st.session_state:
+                        st.session_state.confirmed_mappings = {}
+                    st.session_state.confirmed_mappings[report.file_name] = report.project_id or '失敗'
+                    
+                    # 永続化
+                    save_confirmed_mappings(st.session_state.confirmed_mappings)
+                    # 成功メッセージをセッション状態に保存
+                    st.session_state.mapping_message = ('success', "✅ 確定しました！")
+                    st.rerun()
+                
+                # プロジェクト変更
+                st.write("**プロジェクト変更:**")
+                new_project = st.selectbox(
+                    "正しいプロジェクトを選択",
+                    options=list(project_options.keys()),
+                    format_func=lambda x: project_options[x],
+                    key=f"project_select_{i}"
+                )
+                
+                if st.button("🔄 更新・確定", key=f"update_{i}"):
+                    # セッション状態に更新・確定情報を保存
+                    if 'updated_mappings' not in st.session_state:
+                        st.session_state.updated_mappings = {}
+                    if 'confirmed_mappings' not in st.session_state:
+                        st.session_state.confirmed_mappings = {}
+                    
+                    st.session_state.updated_mappings[report.file_name] = new_project
+                    st.session_state.confirmed_mappings[report.file_name] = new_project
+                    
+                    # 元データ（JSON/キャッシュファイル）を更新
+                    try:
+                        if update_source_data(report.file_name, new_project):
+                            # 成功メッセージをセッション状態に保存
+                            st.session_state.mapping_message = ('success', f"✅ プロジェクトを {new_project} に更新・確定しました！\n元データも更新されました。")
+                            # セッション状態をクリアして再読み込みを促す
+                            if 'reports' in st.session_state:
+                                del st.session_state.reports
+                            # 最新データを即座に読み込み
+                            fresh_reports = load_fresh_reports()
+                            if fresh_reports:
+                                reports = fresh_reports
+                        else:
+                            # エラーメッセージをセッション状態に保存
+                            st.session_state.mapping_message = ('error', f"❌ 元データの更新に失敗しました。\nファイル: {report.file_name}\n\n**考えられる原因:**\n• 事前処理が実行されていない\n• ファイルが処理済みディレクトリに存在しない\n\n**対処法:**\n1. 事前処理を実行してください\n2. 処理済みファイルが生成されてから再試行してください")
+                    except Exception as e:
+                        # 予期しないエラーの場合
+                        st.session_state.mapping_message = ('error', f"❌ 予期しないエラーが発生しました: {str(e)}")
+                    
+                    # 永続化
+                    save_confirmed_mappings(st.session_state.confirmed_mappings)
+                    st.rerun()
+
 def render_data_quality_dashboard(reports: List[DocumentReport]):
     """データ品質監視ダッシュボード"""
     # データ品質セクションヘッダー（建設管理AIタイトルは共通ヘッダーで表示済み）
@@ -486,7 +852,8 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     total_reports = len(reports)
     unexpected_reports = [r for r in reports if getattr(r, 'has_unexpected_values', False)]
     null_status = [r for r in reports if r.status_flag is None]
-    null_categories = [r for r in reports if not r.category_labels]
+    # category_labels削除: 遅延理由分析に統一
+    null_categories = []
     null_risk = [r for r in reports if r.risk_level is None]
     
     # シンプルメトリクス（3つに簡素化）
@@ -538,11 +905,17 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
                     
                     st.write("**現在の値:**")
                     st.write(f"• Status: {report.status_flag.value if report.status_flag else 'None'}")
-                    st.write(f"• Categories: {[c.value for c in report.category_labels] if report.category_labels else 'None'}")
+                    st.write(f"• 遅延理由: 15カテゴリ体系で分析中")
                     st.write(f"• Risk: {report.risk_level.value if report.risk_level else 'None'}")
                 
                 with col2:
-                    st.text_area("内容", report.content[:200] + "...", height=150, key=f"content_{report.file_name}")
+                    # シンプルなテキスト表示
+                    st.write("**内容:**")
+                    preview_content = report.content[:500]
+                    if len(report.content) > 500:
+                        preview_content += "... (続きあり)"
+                    
+                    st.text_area("内容プレビュー", preview_content, height=250, key=f"content_{report.file_name}")
     
     # 問題タイプ別集計
     st.markdown("<div class='custom-header'>問題タイプ別統計</div>", unsafe_allow_html=True)
@@ -561,6 +934,9 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     else:
         st.success("✓ 想定外値は検出されませんでした")
     
+    # プロジェクトマッピング信頼度管理
+    render_project_mapping_review(reports)
+    
     # 対応提案
     st.markdown("<div class='custom-header'>推奨対応アクション</div>", unsafe_allow_html=True)
     
@@ -569,7 +945,7 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
         if null_status:
             st.write(f"• StatusFlag のNull値: {len(null_status)}件 → プロンプトの見直し")
         if null_categories:
-            st.write(f"• CategoryLabel のNull値: {len(null_categories)}件 → キーワード辞書の拡充")
+            st.write(f"• 遅延理由のNull値: {len(null_categories)}件 → 15カテゴリ体系で分析")
         if null_risk:
             st.write(f"• RiskLevel のNull値: {len(null_risk)}件 → リスク判定ロジックの改善")
     else:
@@ -649,6 +1025,63 @@ def main():
         logger.error(f"Application error: {e}")
         st.error("アプリケーションエラーが発生しました。")
         st.exception(e)
+
+def load_confirmed_mappings() -> Dict[str, str]:
+    """確定済みマッピングを読み込み"""
+    try:
+        confirmed_file = Path("data/confirmed_mappings.json")
+        if confirmed_file.exists():
+            with open(confirmed_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        logger.error(f"Failed to load confirmed mappings: {e}")
+        return {}
+
+def save_confirmed_mappings(mappings: Dict[str, str]):
+    """確定済みマッピングを保存"""
+    try:
+        confirmed_file = Path("data/confirmed_mappings.json")
+        with open(confirmed_file, 'w', encoding='utf-8') as f:
+            json.dump(mappings, f, ensure_ascii=False, indent=2)
+        logger.info(f"Confirmed mappings saved: {len(mappings)} entries")
+    except Exception as e:
+        logger.error(f"Failed to save confirmed mappings: {e}")
+
+def cleanup_confirmed_mappings(reports: List[DocumentReport]):
+    """確定済みマッピングをクリーンアップ（事前処理再実行対応）"""
+    try:
+        confirmed_mappings = load_confirmed_mappings()
+        if not confirmed_mappings:
+            return
+        
+        # 現在のレポートファイル名とプロジェクトIDのマッピング
+        current_mappings = {report.file_name: report.project_id for report in reports}
+        
+        # 不整合のあるマッピングを特定
+        inconsistent_files = []
+        for file_name, confirmed_project_id in confirmed_mappings.items():
+            current_project_id = current_mappings.get(file_name)
+            if current_project_id is not None and current_project_id != confirmed_project_id:
+                inconsistent_files.append(file_name)
+                logger.info(f"Inconsistent mapping detected: {file_name} - confirmed: {confirmed_project_id}, current: {current_project_id}")
+        
+        # 不整合のあるマッピングを削除
+        if inconsistent_files:
+            for file_name in inconsistent_files:
+                del confirmed_mappings[file_name]
+            
+            # 更新されたマッピングを保存
+            save_confirmed_mappings(confirmed_mappings)
+            logger.info(f"Cleaned up {len(inconsistent_files)} inconsistent mappings")
+            
+            # ユーザーに通知
+            if len(inconsistent_files) > 0:
+                st.info(f"📋 **事前処理再実行により{len(inconsistent_files)}件のマッピングが更新されました**\n"
+                       f"以前の手動設定値と異なる結果になったファイルの確定状態をリセットしました。")
+    
+    except Exception as e:
+        logger.error(f"Failed to cleanup confirmed mappings: {e}")
 
 if __name__ == "__main__":
     main()

@@ -7,9 +7,9 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from app.models.report import DocumentReport, StatusFlag, CategoryLabel, RiskLevel
+from app.models.report import DocumentReport, StatusFlag, RiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,8 @@ class ProjectSummary:
     risk_level: Optional[RiskLevel] = None
     latest_report_date: Optional[datetime] = None
     latest_report_summary: str = ""
-    category_labels: List[CategoryLabel] = None
+    # category_labels削除: 15カテゴリ遅延理由体系に統一
+    delay_reasons: List[Dict[str, str]] = field(default_factory=list)  # 最新レポートの遅延理由
     
     # プロジェクト指標
     total_reports: int = 0
@@ -38,8 +39,7 @@ class ProjectSummary:
     days_since_last_report: int = 0
     
     def __post_init__(self):
-        if self.category_labels is None:
-            self.category_labels = []
+        # category_labels削除: 15カテゴリ遅延理由体系に統一
         if self.phases is None:
             self.phases = []
 
@@ -73,35 +73,41 @@ class ProjectAggregator:
                     phases=project_data.get("phases", [])  # 詳細フェーズデータ
                 )
                 
-                # プロジェクトに紐づくレポートを集約
+                # プロジェクトに紐づくレポートを集約（project_idで直接マッチング）
                 project_reports = []
                 latest_report = None
                 latest_date = None
                 
-                for report_info in project_data.get("reports", []):
-                    file_name = report_info["file_name"]
-                    if file_name in reports_by_filename:
-                        report = reports_by_filename[file_name]
+                # project_idが一致するレポートを検索
+                for report in reports:
+                    if report.project_id == project_data["project_id"]:
                         project_reports.append(report)
                         
-                        # 最新レポートを特定
-                        report_date = self._parse_date(report_info.get("report_date"))
-                        if report_info.get("is_latest", False) or (report_date and (latest_date is None or report_date > latest_date)):
+                        # 最新レポートを特定（created_atで判定）
+                        if latest_date is None or report.created_at > latest_date:
                             latest_report = report
-                            latest_date = report_date
+                            latest_date = report.created_at
                 
                 # 最新レポートの情報をプロジェクトサマリーに反映
                 if latest_report:
-                    project_summary.current_status = latest_report.status_flag
-                    project_summary.risk_level = latest_report.risk_level
-                    project_summary.category_labels = latest_report.category_labels or []
+                    # status_flagを直接使用（簡素化）
+                    project_summary.current_status = latest_report.status_flag or StatusFlag.NORMAL
+                    
+                    # risk_levelを直接使用（簡素化）
+                    project_summary.risk_level = latest_report.risk_level or RiskLevel.LOW
                     project_summary.latest_report_date = latest_date
                     project_summary.latest_report_summary = getattr(latest_report.analysis_result, 'summary', '') if latest_report.analysis_result else ""
+                    
+                    # 🚧 最新レポートの遅延理由をプロジェクトサマリーに反映
+                    if hasattr(latest_report, 'delay_reasons') and latest_report.delay_reasons:
+                        project_summary.delay_reasons = latest_report.delay_reasons
+                    else:
+                        project_summary.delay_reasons = []
                 
                 # プロジェクト指標を計算
                 project_summary.total_reports = len(project_reports)
                 project_summary.recent_issues_count = sum(1 for r in project_reports 
-                                                        if r.status_flag and r.status_flag in [StatusFlag.STOPPED, StatusFlag.DELAY_RISK_HIGH])
+                                                        if r.status_flag and r.status_flag in [StatusFlag.STOPPED, StatusFlag.MAJOR_DELAY])
                 
                 if latest_date and isinstance(latest_date, datetime):
                     project_summary.days_since_last_report = (datetime.now() - latest_date).days
@@ -165,9 +171,9 @@ class ProjectAggregator:
         # ステータスによる重み
         if project.current_status == StatusFlag.STOPPED:
             score += 1000  # 最高優先度
-        elif project.current_status == StatusFlag.DELAY_RISK_HIGH:
+        elif project.current_status == StatusFlag.MAJOR_DELAY:
             score += 800
-        elif project.current_status == StatusFlag.DELAY_RISK_LOW:
+        elif project.current_status == StatusFlag.MINOR_DELAY:
             score += 400
         
         # リスクレベルによる重み
@@ -193,8 +199,8 @@ class ProjectAggregator:
         """ステータス別にプロジェクトを分類"""
         status_groups = {
             'stopped': [],
-            'delay_risk_high': [],
-            'delay_risk_low': [],
+            'major_delay': [],
+            'minor_delay': [],
             'normal': [],
             'unknown': []
         }
@@ -220,19 +226,26 @@ class ProjectAggregator:
                 'overdue_reports_count': 0
             }
         
+        # 現在の状況ベースでカウント
         stopped_count = sum(1 for p in projects if p.current_status == StatusFlag.STOPPED)
-        high_risk_count = sum(1 for p in projects if p.current_status == StatusFlag.DELAY_RISK_HIGH)
+        major_delay_count = sum(1 for p in projects if p.current_status == StatusFlag.MAJOR_DELAY)
+        minor_delay_count = sum(1 for p in projects if p.current_status == StatusFlag.MINOR_DELAY)
         normal_count = sum(1 for p in projects if p.current_status == StatusFlag.NORMAL)
-        low_risk_count = sum(1 for p in projects if p.current_status == StatusFlag.DELAY_RISK_LOW)
-        low_risk_normal_count = low_risk_count + normal_count
         
         return {
             'total_projects': total_projects,
             'stopped_count': stopped_count,
-            'high_risk_count': high_risk_count,
+            'major_delay_count': major_delay_count,
+            'minor_delay_count': minor_delay_count,
             'normal_count': normal_count,
-            'low_risk_normal_count': low_risk_normal_count,
+            # 分数表示用
+            'stopped_fraction': f"{stopped_count}/{total_projects}",
+            'major_delay_fraction': f"{major_delay_count}/{total_projects}",
+            'minor_delay_fraction': f"{minor_delay_count}/{total_projects}",
+            'normal_fraction': f"{normal_count}/{total_projects}",
+            # パーセンテージ
             'stopped_percentage': (stopped_count / total_projects) * 100,
-            'high_risk_percentage': (high_risk_count / total_projects) * 100,
+            'major_delay_percentage': (major_delay_count / total_projects) * 100,
+            'minor_delay_percentage': (minor_delay_count / total_projects) * 100,
             'normal_percentage': (normal_count / total_projects) * 100
         }

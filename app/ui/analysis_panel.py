@@ -59,14 +59,44 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
     
     if ask_button:
         if question:
-            st.write("**AIの回答:**")
+            st.write("**🤖 RAGシステムによるAI回答:**")
+            
+            # RAGシステムの動作可視化
+            with st.spinner("🔍 関連文書を検索中..."):
+                # ベクター検索の実行と結果表示
+                vector_store = VectorStoreService()
+                search_results = vector_store.search_similar_documents(
+                    query=question, 
+                    n_results=8
+                )
+                
+                # 検索結果の可視化
+                if search_results:
+                    relevant_docs = [r for r in search_results if (1 - r.get('distance', 0.0)) > 0.3]
+                    if relevant_docs:
+                        st.success(f"✅ {len(relevant_docs)}件の関連文書を発見")
+                        
+                        # 検索結果の詳細表示（オプション）
+                        if show_thinking:
+                            with st.expander("🔍 検索された関連文書"):
+                                for i, result in enumerate(relevant_docs[:3]):
+                                    similarity = 1 - result.get('distance', 0.0)
+                                    metadata = result.get('metadata', {})
+                                    st.write(f"**{i+1}. {metadata.get('file_name', '不明')}** (類似度: {similarity:.3f})")
+                                    st.write(f"レポート種別: {metadata.get('report_type', '不明')}")
+                                    st.write(f"内容抜粋: {result.get('content', '')[:150]}...")
+                                    st.divider()
+                    else:
+                        st.warning("⚠️ 関連度の高い文書が見つからないため、最新レポートを使用")
+                else:
+                    st.warning("⚠️ ベクター検索でエラーが発生、最新レポートを使用")
             
             # 思考過程表示
             if show_thinking:
-                with st.spinner("AIが思考中..."):
+                with st.spinner("🧠 AIが文書を分析中..."):
                     import time
                     time.sleep(1)  # 思考演出
-                st.success("回答を生成します")
+                st.success("💡 回答を生成します")
             
             # 統一された回答表示コンテナ（元のスタイル）
             response_placeholder = st.empty()
@@ -90,36 +120,64 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
                     st.info(full_response)
                 
                 # 完了メッセージ
-                st.success("回答が完了しました")
+                st.success("✅ RAGシステムによる回答が完了しました")
                 
             else:
                 # 従来の一括表示（元のスタイル維持）
                 if show_thinking:
-                    with st.spinner("AIが回答を生成中..."):
+                    with st.spinner("🤖 AIが回答を生成中..."):
                         answer = process_qa_question(question, reports)
                 else:
-                    with st.spinner("AIが回答を生成中..."):
+                    with st.spinner("🤖 AIが回答を生成中..."):
                         answer = process_qa_question(question, reports)
                 
                 # 元のシンプルなinfo表示
                 with response_placeholder.container():
                     st.info(answer)
+                
+                # 完了メッセージ
+                st.success("✅ RAGシステムによる回答が完了しました")
         else:
             st.warning("質問を入力してください。")
 
 def process_qa_question(question: str, reports: List[DocumentReport]) -> str:
-    """質問応答を処理"""
+    """質問応答を処理（RAGシステム）"""
     try:
-        # 関連する文書内容を構築
+        # 🔍 RAGシステム: 質問内容に基づいて関連文書を動的検索
+        vector_store = VectorStoreService()
+        search_results = vector_store.search_similar_documents(
+            query=question, 
+            n_results=8  # より多くの関連文書を検索
+        )
+        
+        # 検索結果から高品質なコンテキストを構築
         context_parts = []
-        for i, report in enumerate(reports[:10]):  # 最新10件のレポートを使用
-            if report.analysis_result:
-                context_parts.append(
-                    f"レポート{i+1}: {report.file_name}\\n"
-                    f"要約: {report.analysis_result.summary}\\n"
-                    f"リスクレベル: {report.analysis_result.risk_level}\\n"
-                    f"問題: {', '.join(report.analysis_result.issues)}\\n"
-                )
+        
+        if search_results:
+            for i, result in enumerate(search_results):
+                similarity_score = 1 - result.get('distance', 0.0)
+                if similarity_score > 0.3:  # 類似度閾値でフィルタリング
+                    metadata = result.get('metadata', {})
+                    content = result.get('content', '')
+                    
+                    context_parts.append(
+                        f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
+                        f"ファイル名: {metadata.get('file_name', '不明')}\\n"
+                        f"レポート種別: {metadata.get('report_type', '不明')}\\n"
+                        f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
+                        f"内容: {content[:300]}...\\n"
+                    )
+        
+        # フォールバック: ベクター検索で結果が少ない場合は最新レポートも追加
+        if len(context_parts) < 3:
+            for i, report in enumerate(reports[:5]):
+                if report.analysis_result:
+                    context_parts.append(
+                        f"最新レポート{i+1}: {report.file_name}\\n"
+                        f"要約: {report.analysis_result.summary}\\n"
+                        f"リスクレベル: {getattr(report, 'risk_level', '不明')}\\n"
+                        f"問題: {', '.join(report.analysis_result.issues)}\\n"
+                    )
         
         context = "\\n".join(context_parts)
         
@@ -133,18 +191,43 @@ def process_qa_question(question: str, reports: List[DocumentReport]) -> str:
         return f"申し訳ございませんが、回答の生成中にエラーが発生しました: {str(e)}"
 
 def process_qa_question_stream(question: str, reports: List[DocumentReport]):
-    """質問応答を処理（ストリーミング対応）"""
+    """質問応答を処理（ストリーミング対応・RAGシステム）"""
     try:
-        # 関連する文書内容を構築
+        # 🔍 RAGシステム: 質問内容に基づいて関連文書を動的検索
+        vector_store = VectorStoreService()
+        search_results = vector_store.search_similar_documents(
+            query=question, 
+            n_results=8  # より多くの関連文書を検索
+        )
+        
+        # 検索結果から高品質なコンテキストを構築
         context_parts = []
-        for i, report in enumerate(reports[:10]):  # 最新10件のレポートを使用
-            if report.analysis_result:
-                context_parts.append(
-                    f"レポート{i+1}: {report.file_name}\\n"
-                    f"要約: {report.analysis_result.summary}\\n"
-                    f"リスクレベル: {report.analysis_result.risk_level}\\n"
-                    f"問題: {', '.join(report.analysis_result.issues)}\\n"
-                )
+        
+        if search_results:
+            for i, result in enumerate(search_results):
+                similarity_score = 1 - result.get('distance', 0.0)
+                if similarity_score > 0.3:  # 類似度閾値でフィルタリング
+                    metadata = result.get('metadata', {})
+                    content = result.get('content', '')
+                    
+                    context_parts.append(
+                        f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
+                        f"ファイル名: {metadata.get('file_name', '不明')}\\n"
+                        f"レポート種別: {metadata.get('report_type', '不明')}\\n"
+                        f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
+                        f"内容: {content[:300]}...\\n"
+                    )
+        
+        # フォールバック: ベクター検索で結果が少ない場合は最新レポートも追加
+        if len(context_parts) < 3:
+            for i, report in enumerate(reports[:5]):
+                if report.analysis_result:
+                    context_parts.append(
+                        f"最新レポート{i+1}: {report.file_name}\\n"
+                        f"要約: {report.analysis_result.summary}\\n"
+                        f"リスクレベル: {getattr(report, 'risk_level', '不明')}\\n"
+                        f"問題: {', '.join(report.analysis_result.issues)}\\n"
+                    )
         
         context = "\\n".join(context_parts)
         
@@ -294,7 +377,7 @@ def render_urgency_trend_chart(reports: List[DocumentReport]):
     for report in reports:
         date = report.created_at.date()
         if report.analysis_result:
-            urgency = report.analysis_result.urgency_score
+            urgency = getattr(report, 'urgency_score', 0)
             daily_urgency[date] = daily_urgency.get(date, 0) + urgency
             daily_counts[date] = daily_counts.get(date, 0) + 1
     
@@ -339,7 +422,7 @@ def render_trend_statistics(reports: List[DocumentReport]):
     
     with col2:
         avg_urgency = sum(
-            r.analysis_result.urgency_score if r.analysis_result else 0
+            getattr(r, 'urgency_score', 0)
             for r in reports
         ) / len(reports)
         st.metric("平均緊急度", f"{avg_urgency:.1f}")
@@ -347,7 +430,7 @@ def render_trend_statistics(reports: List[DocumentReport]):
     with col3:
         high_urgency_count = len([
             r for r in reports
-            if r.analysis_result and r.analysis_result.urgency_score >= 7
+            if getattr(r, 'urgency_score', 0) >= 7
         ])
         st.metric("高緊急度案件", high_urgency_count)
     

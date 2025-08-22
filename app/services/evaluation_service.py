@@ -3,11 +3,12 @@ LLM機能の自動評価サービス
 """
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 
-from app.models.report import DocumentReport, FlagType, RiskLevel
+from app.models.report import DocumentReport, StatusFlag, RiskLevel
 from app.config.settings import DATA_DIR
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ class EvaluationMetrics:
 class EvaluationResult:
     """統合分析評価結果"""
     report_type_classification: EvaluationMetrics
-    status_classification: EvaluationMetrics
-    category_classification: EvaluationMetrics
+    status_flag_classification: EvaluationMetrics  # status → status_flag
+    delay_reasons_classification: EvaluationMetrics
     risk_level_assessment: EvaluationMetrics
     human_review_detection: EvaluationMetrics
     project_mapping: EvaluationMetrics
@@ -36,7 +37,7 @@ class EvaluationService:
     """LLM機能評価サービス"""
     
     def __init__(self):
-        self.ground_truth_path = Path(DATA_DIR) / "evaluation" / "ground_truth.json"
+        self.ground_truth_path = Path(DATA_DIR) / "evaluation" / "comprehensive_ground_truth.json"
         self.ground_truth = self._load_ground_truth()
     
     def _load_ground_truth(self) -> Dict[str, Any]:
@@ -61,7 +62,7 @@ class EvaluationService:
         # 🎯 統合分析機能の評価
         report_type_metrics = self._evaluate_report_type_classification(reports, evaluation_data)
         status_metrics = self._evaluate_status_classification(reports, evaluation_data)
-        category_metrics = self._evaluate_category_classification(reports, evaluation_data)
+        delay_reasons_metrics = self._evaluate_delay_reasons_classification(reports, evaluation_data)
         risk_metrics = self._evaluate_risk_level_assessment(reports, evaluation_data)
         human_review_metrics = self._evaluate_human_review_detection(reports, evaluation_data)
         project_mapping_metrics = self._evaluate_project_mapping(reports, evaluation_data)
@@ -70,7 +71,7 @@ class EvaluationService:
         overall_score = (
             report_type_metrics.f1_score * 0.15 +
             status_metrics.f1_score * 0.25 +
-            category_metrics.f1_score * 0.20 +
+            delay_reasons_metrics.f1_score * 0.20 +
             risk_metrics.f1_score * 0.20 +
             human_review_metrics.f1_score * 0.10 +
             project_mapping_metrics.f1_score * 0.10
@@ -79,7 +80,7 @@ class EvaluationService:
         return EvaluationResult(
             report_type_classification=report_type_metrics,
             status_classification=status_metrics,
-            category_classification=category_metrics,
+            delay_reasons_classification=delay_reasons_metrics,
             risk_level_assessment=risk_metrics,
             human_review_detection=human_review_metrics,
             project_mapping=project_mapping_metrics,
@@ -93,7 +94,8 @@ class EvaluationService:
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
                 expected = ground_truth[filename]["expected_report_type"]
                 predicted = report.report_type.value if report.report_type else "OTHER"
@@ -110,9 +112,10 @@ class EvaluationService:
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
-                expected = ground_truth[filename]["expected_status"]
+                expected = ground_truth[filename]["expected_current_status"]
                 predicted = report.status_flag.value if report.status_flag else "unknown"
                 
                 predictions.append(predicted)
@@ -127,7 +130,8 @@ class EvaluationService:
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
                 expected = ground_truth[filename]["expected_requires_human_review"]
                 predicted = getattr(report, 'requires_human_review', False)
@@ -137,22 +141,30 @@ class EvaluationService:
         
         return self._calculate_metrics(predictions, actuals, "human_review_detection")
     
-    def _evaluate_category_classification(self, reports: List[DocumentReport],
-                                        ground_truth: Dict[str, Any]) -> EvaluationMetrics:
-        """カテゴリ分類の評価（統合分析版）"""
+    def _evaluate_delay_reasons_classification(self, reports: List[DocumentReport],
+                                             ground_truth: Dict[str, Any]) -> EvaluationMetrics:
+        """遅延理由分類の評価（15カテゴリ体系）"""
         predictions = []
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
-                expected = set(ground_truth[filename]["expected_categories"])
-                predicted = set([cat.value for cat in report.category_labels]) if report.category_labels else set()
+                expected_delays = ground_truth[filename].get("expected_delay_reasons", [])
+                expected_categories = set([delay.get("category", "") for delay in expected_delays])
                 
-                predictions.append(predicted)
-                actuals.append(expected)
+                # レポートの遅延理由から抽出
+                predicted_categories = set()
+                if hasattr(report, 'delay_reasons') and report.delay_reasons:
+                    for delay in report.delay_reasons:
+                        if isinstance(delay, dict):
+                            predicted_categories.add(delay.get("category", ""))
+                
+                predictions.append(predicted_categories)
+                actuals.append(expected_categories)
         
-        return self._calculate_set_metrics(predictions, actuals, "category_classification")
+        return self._calculate_set_metrics(predictions, actuals, "delay_reasons_classification")
     
     def _evaluate_risk_level_assessment(self, reports: List[DocumentReport],
                                       ground_truth: Dict[str, Any]) -> EvaluationMetrics:
@@ -161,7 +173,8 @@ class EvaluationService:
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
                 expected = ground_truth[filename]["expected_risk_level"]
                 predicted = report.risk_level.value if report.risk_level else "不明"
@@ -178,7 +191,8 @@ class EvaluationService:
         actuals = []
         
         for report in reports:
-            filename = Path(report.file_path).name
+            # ファイル名を正規化（日付プレフィックスと拡張子を除去）
+            filename = self._normalize_filename_for_gt(report.file_path)
             if filename in ground_truth:
                 expected = ground_truth[filename]["expected_project_id"]
                 predicted = getattr(report, 'project_id', None) or "不明"
@@ -187,6 +201,18 @@ class EvaluationService:
                 actuals.append(expected)
         
         return self._calculate_metrics(predictions, actuals, "project_mapping")
+    
+    def _normalize_filename_for_gt(self, file_path: str) -> str:
+        """ファイル名を正解データのキー形式に正規化"""
+        filename = Path(file_path).name
+        
+        # 日付プレフィックスを除去（例: __20250818_ を除去）
+        filename = re.sub(r'__\d{8}_', '_', filename)
+        
+        # 拡張子を除去
+        filename = Path(filename).stem
+        
+        return filename
     
     def _calculate_metrics(self, predictions: List[str], actuals: List[str], 
                           metric_name: str) -> EvaluationMetrics:

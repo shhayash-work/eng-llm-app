@@ -227,7 +227,7 @@ class CacheLoader:
     def _deserialize_report(self, data: Dict[str, Any]) -> Optional[DocumentReport]:
         """JSONデータからDocumentReportオブジェクトを復元"""
         try:
-            from app.models.report import StatusFlag, CategoryLabel, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection, ReportType
+            from app.models.report import StatusFlag, RiskLevel, ConstructionStatus, AnalysisResult, AnomalyDetection, ReportType
             from datetime import datetime
             
             report = DocumentReport(
@@ -243,25 +243,28 @@ class CacheLoader:
             if data.get("analysis_result"):
                 analysis = data["analysis_result"]
                 report.analysis_result = AnalysisResult(
+                    summary=analysis.get("summary", ""),
+                    issues=analysis.get("issues", []),
                     key_points=analysis.get("key_points", "").split(",") if analysis.get("key_points") else [],
-                    recommended_flags=analysis.get("recommended_flags", "").split(",") if analysis.get("recommended_flags") else [],
                     confidence=float(analysis.get("confidence", 0.0))
                 )
             
-            # AnomalyDetection復元
+            # AnomalyDetection復元（新構造）
             if data.get("anomaly_detection"):
                 anomaly = data["anomaly_detection"]
                 report.anomaly_detection = AnomalyDetection(
-                    has_anomaly=bool(anomaly.get("has_anomaly", False)),
-                    anomaly_score=float(anomaly.get("anomaly_score", 0.0)),
-                    explanation=anomaly.get("explanation", "")
+                    is_anomaly=bool(anomaly.get("is_anomaly", anomaly.get("has_anomaly", False))),  # 後方互換性
+                    anomaly_description=anomaly.get("anomaly_description", anomaly.get("explanation", "")),  # 後方互換性
+                    confidence=float(anomaly.get("confidence", 0.0)),
+                    suggested_action=anomaly.get("suggested_action", ""),
+                    requires_human_review=bool(anomaly.get("requires_human_review", False)),
+                    similar_cases=anomaly.get("similar_cases", [])
                 )
             
             # 新しいフラグ体系復元
             if data.get("status_flag"):
                 report.status_flag = StatusFlag(data["status_flag"])
-            if data.get("category_labels"):
-                report.category_labels = [CategoryLabel(label) for label in data["category_labels"]]
+            # category_labels削除: 15カテゴリ遅延理由体系に統一
             if data.get("risk_level"):
                 report.risk_level = RiskLevel(data["risk_level"])
             if data.get("construction_status"):
@@ -274,7 +277,7 @@ class CacheLoader:
             # 🤖 統合分析結果フィールド復元
             report.requires_human_review = data.get("requires_human_review", False)
             report.analysis_confidence = data.get("analysis_confidence", 0.0)
-            report.analysis_notes = data.get("analysis_notes")
+            # analysis_notes削除: summaryに統合
             
             # 🔍 建設工程情報復元
             report.current_construction_phase = data.get("current_construction_phase")
@@ -282,6 +285,14 @@ class CacheLoader:
             
             # 📋 プロジェクトマッピング詳細情報復元
             report.project_mapping_info = data.get("project_mapping_info")
+            
+            # 🚧 遅延理由情報復元（15カテゴリ体系）
+            report.delay_reasons = data.get("delay_reasons", [])
+            
+            # 🎯 緊急度スコア復元
+            report.urgency_score = data.get("urgency_score", 1)
+            
+            # current_status削除: status_flagで統一
             
             return report
             

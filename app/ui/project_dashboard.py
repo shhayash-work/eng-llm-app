@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
 from app.services.project_aggregator import ProjectSummary
+from app.models.report import DocumentReport
 
 def render_project_dashboard(projects: List[ProjectSummary], reports: List = None):
     """プロジェクト中心のメインダッシュボード"""
@@ -45,7 +46,10 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
     # メトリクス表示
     _render_project_metrics(metrics)
     
-    # プロジェクト状況概要
+    # 重大問題アラート表示
+    _render_critical_alerts(active_projects, reports)
+    
+    # プロジェクト状況一覧
     st.markdown("<div class='custom-header'>プロジェクト状況一覧</div>", unsafe_allow_html=True)
     
     # 重要度順タブ表示
@@ -57,72 +61,105 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
         _render_project_list_section(latest_projects, "最新報告プロジェクト", show_more_link=len(active_projects) > 5, reports=reports)
     
     with tab2:
-        # 緊急対応要（停止・遅延リスク高のうち緊急度上位5件）
-        urgent_projects = [p for p in active_projects if p.current_status and p.current_status.value in ['stopped', 'delay_risk_high']]
+        # 緊急対応要（停止・重大な遅延のうち緊急度上位5件）
+        urgent_projects = [p for p in active_projects if p.current_status and p.current_status.value in ['stopped', 'major_delay']]
         urgent_projects = sorted(urgent_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
-        _render_project_list_section(urgent_projects, "要緊急対応プロジェクト", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value in ['stopped', 'delay_risk_high']]) > 5, reports=reports)
+        _render_project_list_section(urgent_projects, "要緊急対応プロジェクト", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value in ['stopped', 'major_delay']]) > 5, reports=reports)
     
     with tab3:
-        # 通常監視（遅延リスク低・順調のうち緊急度上位5件）
-        normal_projects = [p for p in active_projects if p.current_status and p.current_status.value in ['delay_risk_low', 'normal']]
+        # 通常監視（軽微な遅延・順調のうち緊急度上位5件）
+        normal_projects = [p for p in active_projects if p.current_status and p.current_status.value in ['minor_delay', 'normal']]
         normal_projects = sorted(normal_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
-        _render_project_list_section(normal_projects, "通常監視プロジェクト", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value in ['delay_risk_low', 'normal']]) > 5, reports=reports)
+        _render_project_list_section(normal_projects, "通常監視プロジェクト", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value in ['minor_delay', 'normal']]) > 5, reports=reports)
     
     # プロジェクト分析チャート
     col1, col2 = st.columns(2)
     
     with col1:
-        _render_status_distribution_chart(status_groups)
+        _render_category_distribution_chart(active_projects)
     
     with col2:
-        _render_category_distribution_chart(active_projects)
+        _render_risk_distribution_chart(active_projects)
     
     # 完了予定タイムライン（下部に移動）
     _render_timeline_chart(active_projects)
 
 def _render_project_metrics(metrics: Dict[str, Any]):
-    """プロジェクトメトリクス表示"""
+    """プロジェクトメトリクス表示（現在の状況ベース）"""
+    
+    # キャッシュクリア（強制更新）
+    st.cache_data.clear()
+    
+    # CSSスタイルを直接定義（キャッシュ回避）
+    st.markdown("""
+    <style>
+    .metric-card-updated {
+        background: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        text-align: center;
+        border: 1px solid #e1e5e9;
+    }
+    .metric-card-updated h3 {
+        font-size: 1.4rem !important;
+        margin: 0 0 0.5rem 0 !important;
+        color: #666 !important;
+        font-weight: 600 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+    }
+    .metric-card-updated h2 {
+        margin: 0.5rem 0 !important;
+        font-size: 3rem !important;
+        font-weight: bold !important;
+    }
+    .metric-card-updated p {
+        margin: 0 !important;
+        color: #888 !important;
+        font-size: 0.9rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown(f"""
-        <div class='metric-card'>
-            <h3>総プロジェクト数</h3>
-            <h2>{metrics['total_projects']}</h2>
-            <p>100.0%</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
         color = "#FF6B35" if metrics['stopped_count'] > 0 else "#28a745"
         st.markdown(f"""
-        <div class='metric-card'>
-            <h3>停止プロジェクト</h3>
-            <h2 style='color: {color};'>{metrics['stopped_count']}</h2>
+        <div class='metric-card-updated'>
+            <h3>停止プロジェクト数</h3>
+            <h2 style='color: {color};'>{metrics['stopped_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
             <p>{metrics['stopped_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
     
-    with col3:
-        color = "#FFA500" if metrics['high_risk_count'] > 0 else "#28a745"
+    with col2:
+        color = "#FF6B35" if metrics['major_delay_count'] > 0 else "#28a745"
         st.markdown(f"""
-        <div class='metric-card'>
-            <h3>遅延リスク高</h3>
-            <h2 style='color: {color};'>{metrics['high_risk_count']}</h2>
-            <p>{metrics['high_risk_percentage']:.1f}%</p>
+        <div class='metric-card-updated'>
+            <h3>重大な遅延プロジェクト数</h3>
+            <h2 style='color: {color};'>{metrics['major_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <p>{metrics['major_delay_percentage']:.1f}%</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        color = "#FFA500" if metrics['minor_delay_count'] > 0 else "#28a745"
+        st.markdown(f"""
+        <div class='metric-card-updated'>
+            <h3>軽微な遅延プロジェクト数</h3>
+            <h2 style='color: {color};'>{metrics['minor_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <p>{metrics['minor_delay_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
-        low_risk_normal_count = metrics.get('low_risk_normal_count', 0)
-        total_projects = metrics.get('total_projects', 1)
-        low_risk_normal_percentage = (low_risk_normal_count / total_projects * 100) if total_projects > 0 else 0
         st.markdown(f"""
-        <div class='metric-card'>
-            <h3>遅延リスク低・順調</h3>
-            <h2 style='color: #28a745;'>{low_risk_normal_count}</h2>
-            <p>{low_risk_normal_percentage:.1f}%</p>
+        <div class='metric-card-updated'>
+            <h3>順調プロジェクト数</h3>
+            <h2 style='color: #28a745;'>{metrics['normal_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <p>{metrics['normal_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -151,11 +188,21 @@ def _render_project_card(project: ProjectSummary, section_name: str = "default",
     # ステータスラベルの日本語変換
     status_labels = {
         'stopped': '停止',
-        'delay_risk_high': '遅延リスク高',
-        'delay_risk_low': '遅延リスク低', 
+        'major_delay': '重大な遅延',
+        'minor_delay': '軽微な遅延', 
         'normal': '順調'
     }
     status_text = status_labels.get(project.current_status.value, project.current_status.value) if project.current_status else '不明'
+    
+    # リスクレベル表示用（ステータスと重複しないように簡略化）
+    risk_text = project.risk_level.value if project.risk_level else '不明'
+    risk_colors = {
+        '高': '#dc3545',
+        '中': '#ffc107', 
+        '低': '#28a745',
+        '不明': '#6c757d'
+    }
+    risk_color = risk_colors.get(risk_text, '#6c757d')
     
     # 展開状態の管理
     expand_key = f"expand_{project.project_id}_{section_name}"
@@ -169,14 +216,19 @@ def _render_project_card(project: ProjectSummary, section_name: str = "default",
     expand_icon = "▲" if is_expanded else "▼"
     unique_btn_id = f"detail_btn_{project.project_id}_{section_name}"
     
-    # シンプルなカードデザイン
+    # シンプルなカードデザイン（現在の状況 + 将来リスク）
     st.markdown(f"""
     <div style='border: 2px solid {border_color}; border-radius: 8px; padding: 16px; margin-bottom: 8px; background-color: {background_color}; transition: all 0.3s ease;'>
         <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
             <h4 style='margin: 0; color: #2C3E50; font-size: 18px;'>{project.project_name}</h4>
-            <span style='background-color: {status_color}; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold;'>
-                {status_text}
-            </span>
+            <div style='display: flex; gap: 8px;'>
+                <span style='background-color: {status_color}; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold;'>
+                    {status_text}
+                </span>
+                <span style='background-color: {risk_color}; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold;'>
+                    リスク{risk_text}
+                </span>
+            </div>
         </div>
         <p style='margin: 4px 0; color: #7F8C8D; font-size: 16px;'><strong>場所:</strong> {project.location}</p>
         <p style='margin: 4px 0; color: #7F8C8D; font-size: 16px;'><strong>フェーズ:</strong> {project.current_phase}</p>
@@ -199,8 +251,8 @@ def _render_all_projects_table(projects: List[ProjectSummary], show_more_link: b
     # ステータスラベルの日本語変換
     status_labels = {
         'stopped': '停止',
-        'delay_risk_high': '遅延リスク高',
-        'delay_risk_low': '遅延リスク低', 
+        'major_delay': '重大な遅延',
+        'minor_delay': '軽微な遅延', 
         'normal': '順調'
     }
     
@@ -260,8 +312,8 @@ def _render_status_distribution_chart(status_groups: Dict[str, List[ProjectSumma
     
     status_config = {
         'stopped': ('停止', '#FF6B35'),
-        'delay_risk_high': ('遅延リスク高', '#FFA500'),
-        'delay_risk_low': ('遅延リスク低', '#FFD700'),
+        'major_delay': ('重大な遅延', '#FFA500'),
+        'minor_delay': ('軽微な遅延', '#FFD700'),
         'normal': ('順調', '#28a745'),
         'unknown': ('不明', '#6C757D')
     }
@@ -295,52 +347,9 @@ def _render_status_distribution_chart(status_groups: Dict[str, List[ProjectSumma
         st.info("表示可能なデータがありません。")
 
 def _render_category_distribution_chart(projects: List[ProjectSummary]):
-    """問題区分分布チャート"""
-    st.markdown("<div class='custom-header'>問題区分分布</div>", unsafe_allow_html=True)
-    
-    # カテゴリーラベルを集計
-    category_counts = {}
-    category_labels = {
-        'technical': '技術課題',
-        'administrative': '事務課題',
-        'stakeholder': 'ステークホルダー',
-        'financial': '財務',
-        'environmental': '環境課題',
-        'legal': '法的問題',
-        'requires_review': '要確認',
-        'other': 'その他'
-    }
-    
-    for project in projects:
-        if project.category_labels:
-            for category in project.category_labels:
-                category_name = category_labels.get(category.value, category.value)
-                category_counts[category_name] = category_counts.get(category_name, 0) + 1
-    
-    if category_counts:
-        labels = list(category_counts.keys())
-        values = list(category_counts.values())
-        colors = ['#FF6B35', '#FFA500', '#FFD700', '#87CEEB', '#DDA0DD', '#98FB98', '#F0E68C', '#D3D3D3']
-        
-        fig = go.Figure(data=[go.Pie(
-            labels=labels,
-            values=values,
-            hole=.4,
-            marker_colors=colors[:len(labels)]
-        )])
-        
-        fig.update_layout(
-            title='',
-            showlegend=True,
-            height=300,
-            margin=dict(t=20, b=20, l=20, r=20),
-            font=dict(size=16),
-            legend=dict(font=dict(size=16))
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("表示可能なカテゴリーデータがありません。")
+    """遅延理由分布チャート（プロジェクトベース）"""
+    # プロジェクトベースで遅延理由分布チャートを表示
+    _render_project_based_delay_reason_chart(projects)
 
 def _render_timeline_chart(projects: List[ProjectSummary]):
     """プロジェクト完了予定タイムライン（月別集計・過去1年〜未来2年）"""
@@ -379,7 +388,7 @@ def _render_timeline_chart(projects: List[ProjectSummary]):
         if project.current_status:
             if project.current_status.value in ['stopped']:
                 status_category = "未着手"
-            elif project.current_status.value in ['delay_risk_high', 'delay_risk_low', 'normal']:
+            elif project.current_status.value in ['major_delay', 'minor_delay', 'normal']:
                 # 完了予定日が過去なら完了済み、未来なら工事中
                 if completion_date < now:
                     status_category = "完了済み"
@@ -477,8 +486,8 @@ def _render_latest_report_analysis(project: ProjectSummary, reports: List = None
     # ステータスラベルの日本語化
     status_labels = {
         'stopped': '停止',
-        'delay_risk_high': '遅延リスク高',
-        'delay_risk_low': '遅延リスク低', 
+        'major_delay': '重大な遅延',
+        'minor_delay': '軽微な遅延', 
         'normal': '順調'
     }
     
@@ -504,12 +513,12 @@ def _render_latest_report_analysis(project: ProjectSummary, reports: List = None
     with col2:
         risk_text = latest_report.risk_level.value if latest_report.risk_level else "不明"
         st.markdown(f"**リスクレベル:** {risk_text}")
-        urgency = latest_report.analysis_result.urgency_score if latest_report.analysis_result else 0
+        urgency = getattr(latest_report, 'urgency_score', 0)
         st.markdown(f"**緊急度スコア:** {urgency}")
         
         # 問題区分（日本語化）
-        if latest_report.category_labels:
-            categories_jp = [category_labels.get(label.value, label.value) for label in latest_report.category_labels]
+        # category_labels削除: 遅延理由体系に統一
+        if False:  # 無効化
             st.markdown(f"**問題区分:** {', '.join(categories_jp)}")
     
     if latest_report.analysis_result:
@@ -541,8 +550,8 @@ def _render_project_details_inline(project: ProjectSummary):
         else:
             st.markdown("• レポート要約データなし")
         
-        if hasattr(project, 'category_labels') and project.category_labels:
-            categories = ', '.join([label.value for label in project.category_labels])
+        # category_labels削除: 遅延理由体系に統一
+        if False:  # 無効化
             st.markdown(f"• **問題区分**: {categories}")
 
 def _render_latest_project_report(projects: List[ProjectSummary], project_id: str):
@@ -569,8 +578,8 @@ def _render_latest_project_report(projects: List[ProjectSummary], project_id: st
     with col2:
         status_labels = {
             'stopped': '停止',
-            'delay_risk_high': '遅延リスク高',
-            'delay_risk_low': '遅延リスク低', 
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延', 
             'normal': '順調'
         }
         status_text = status_labels.get(target_project.current_status.value, target_project.current_status.value) if target_project.current_status else '不明'
@@ -602,8 +611,8 @@ def _get_status_color(status):
     
     color_map = {
         'stopped': '#FF6B35',
-        'delay_risk_high': '#FFA500',
-        'delay_risk_low': '#FFD700',
+        'major_delay': '#FFA500',
+        'minor_delay': '#FFD700',
         'normal': '#28a745'
     }
     return color_map.get(status.value, '#6C757D')
@@ -628,8 +637,8 @@ def _get_urgency_score(project: ProjectSummary) -> int:
     if project.current_status:
         status_scores = {
             'stopped': 100,
-            'delay_risk_high': 80,
-            'delay_risk_low': 40,
+            'major_delay': 80,
+            'minor_delay': 40,
             'normal': 20
         }
         score += status_scores.get(project.current_status.value, 0)
@@ -648,3 +657,369 @@ def _get_urgency_score(project: ProjectSummary) -> int:
         score += min(project.days_since_last_report * 2, 50)
     
     return score
+
+def _render_critical_alerts(projects: List[ProjectSummary], reports: List = None):
+    """重大問題アラート表示"""
+    # 遅延理由体系に該当しない理由や重大問題のあるプロジェクトを抽出
+    critical_projects = []
+    
+    # 定義された遅延理由カテゴリ
+    known_delay_categories = [
+        "工程ミス", "要件漏れ", "無線機不具合", "物件不具合", "設計不足",
+        "電源遅延", "回線不具合", "免許不具合", "法規制", "産廃発生",
+        "オーナー交渉難航", "近隣交渉難航", "他事業者交渉難航", "親局不具合", "イレギュラ発生"
+    ]
+    
+    for project in projects:
+        is_critical = False
+        critical_reasons = []
+        
+        # 工期未定などの状況チェック
+        if ('未定' in str(project.estimated_completion)) or \
+           (project.current_status and project.current_status.value == 'stopped'):
+            is_critical = True
+            critical_reasons.append("工期未定または停止状態")
+        
+        # 遅延理由が体系外の場合（プロジェクトに遅延理由があると仮定）
+        if hasattr(project, 'delay_reasons') and project.delay_reasons:
+            for delay_reason in project.delay_reasons:
+                if isinstance(delay_reason, dict):
+                    category = delay_reason.get('category', '')
+                    if category and category not in known_delay_categories:
+                        is_critical = True
+                        critical_reasons.append(f"未知の遅延理由: {category}")
+        
+        if is_critical:
+            project.critical_reasons = critical_reasons
+            critical_projects.append(project)
+    
+    # 重大問題アラートの表示
+    st.markdown("<div class='custom-header'>重大問題プロジェクト</div>", unsafe_allow_html=True)
+    
+    if critical_projects:
+        for project in critical_projects:
+            with st.container():
+                reasons_text = "<br/>".join(getattr(project, 'critical_reasons', ['要人的確認が必要']))
+                st.markdown(f"""
+                <div style="border: 2px solid #FF4B4B; border-radius: 8px; padding: 12px; margin: 8px 0; background-color: #FFF5F5;">
+                    <h4 style="margin: 0; color: #FF4B4B;">⚠️ {project.project_name}</h4>
+                    <p style="margin: 4px 0;"><strong>ステータス:</strong> {project.current_status.value if project.current_status else 'Unknown'}</p>
+                    <p style="margin: 4px 0;"><strong>完了予定:</strong> {project.estimated_completion}</p>
+                    <p style="margin: 4px 0; color: #FF4B4B;"><strong>問題:</strong> {reasons_text}</p>
+                    <p style="margin: 4px 0; color: #FF4B4B;"><strong>要人的確認</strong> - 専門的な判断が必要です</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 最新レポート詳細ボタンを追加
+                with st.expander("最新レポート詳細"):
+                    _render_latest_report_details(project, reports)
+    else:
+        st.markdown("""
+        <div style="border: 1px solid #28a745; border-radius: 8px; padding: 12px; margin: 8px 0; background-color: #F5FFF5;">
+            <p style="margin: 0; color: #28a745;">✅ 現在重大問題は発生していません</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+def _render_latest_report_details(project: ProjectSummary, reports: List = None):
+    """最新レポート詳細表示"""
+    if not reports:
+        st.info("レポートデータが利用できません。")
+        return
+    
+    # プロジェクトに関連する最新レポートを検索
+    project_reports = [r for r in reports if getattr(r, 'project_id', None) == project.project_id]
+    
+    if not project_reports:
+        st.info("このプロジェクトに関連するレポートが見つかりません。")
+        return
+    
+    # 最新レポートを特定
+    latest_report = max(project_reports, key=lambda r: r.created_at)
+    
+    # レポート詳細表示
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.write(f"**レポートタイプ:** {latest_report.report_type.value if latest_report.report_type else '不明'}")
+        st.write(f"**ファイル名:** {latest_report.file_name}")
+        st.write(f"**作成日時:** {latest_report.created_at.strftime('%Y-%m-%d %H:%M')}")
+        
+        if hasattr(latest_report, 'current_construction_phase') and latest_report.current_construction_phase:
+            st.write(f"**建設工程:** {latest_report.current_construction_phase}")
+        
+        if hasattr(latest_report, 'delay_reasons') and latest_report.delay_reasons:
+            st.write("**遅延理由:**")
+            for reason in latest_report.delay_reasons:
+                if isinstance(reason, dict):
+                    st.write(f"• {reason.get('category', '不明')}: {reason.get('description', '')}")
+    
+    with col2:
+        # ステータス・リスク表示
+        status_color = {
+            'stopped': '#FF4B4B',
+            'major_delay': '#FF6B35', 
+            'minor_delay': '#FFA500',
+            'normal': '#28a745'
+        }
+        
+        current_status = getattr(latest_report, 'current_status', 'normal')
+        color = status_color.get(current_status, '#666666')
+        
+        st.markdown(f"""
+        <div style="padding: 8px; border-radius: 4px; background-color: {color}20; border-left: 4px solid {color};">
+            <strong>ステータス:</strong> {current_status}<br/>
+            <strong>リスクレベル:</strong> {getattr(latest_report, 'risk_level', '不明')}<br/>
+            <strong>信頼度:</strong> {getattr(latest_report, 'analysis_confidence', 0.0):.1%}
+        </div>
+        """, unsafe_allow_html=True)
+
+def _render_construction_phases_overview(projects: List[ProjectSummary]):
+    """7ステップ建設工程概要表示"""
+    st.markdown("### 📊 建設工程7ステップ概要")
+    
+    # 正しい7ステップの定義
+    phases = [
+        "置局発注", "基本同意", "基本図承認", "内諾", 
+        "附帯着工", "電波発射", "工事検収"
+    ]
+    
+    # 各ステップの進捗状況を集計（停止状態も追加）
+    phase_counts = {phase: {"完了": 0, "進行中": 0, "未着手": 0, "停止": 0} for phase in phases}
+    
+    for project in projects:
+        current_phase = project.current_phase
+        
+        # プロジェクトが停止状態かチェック
+        is_stopped = (
+            (project.current_status and project.current_status.value == 'stopped') or
+            ('未定' in str(project.estimated_completion))
+        )
+        
+        if current_phase in phases:
+            current_index = phases.index(current_phase)
+            
+            for i, phase in enumerate(phases):
+                if is_stopped and i == current_index:
+                    # 停止プロジェクトは現在フェーズで停止
+                    phase_counts[phase]["停止"] += 1
+                elif i < current_index:
+                    # 現在フェーズより前は完了
+                    phase_counts[phase]["完了"] += 1
+                elif i == current_index and not is_stopped:
+                    # 現在フェーズで進行中（停止でない場合）
+                    phase_counts[phase]["進行中"] += 1
+                else:
+                    # それ以降は未着手
+                    phase_counts[phase]["未着手"] += 1
+    
+    # 進捗バーとして表示
+    cols = st.columns(len(phases))
+    
+    for i, (phase, col) in enumerate(zip(phases, cols)):
+        with col:
+            total = sum(phase_counts[phase].values())
+            if total > 0:
+                completed = phase_counts[phase]["完了"]
+                in_progress = phase_counts[phase]["進行中"]
+                stopped = phase_counts[phase]["停止"]
+                not_started = phase_counts[phase]["未着手"]
+                
+                completed_pct = (completed / total) * 100
+                in_progress_pct = (in_progress / total) * 100
+                stopped_pct = (stopped / total) * 100
+                
+                st.markdown(f"""
+                <div style="text-align: center; padding: 8px;">
+                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">{i+1}. {phase}</div>
+                    <div style="background-color: #f0f0f0; border-radius: 4px; height: 60px; position: relative; margin-bottom: 4px;">
+                        <div style="background-color: #28a745; height: {completed_pct}%; border-radius: 4px 4px 0 0;"></div>
+                        <div style="background-color: #ffc107; height: {in_progress_pct}%; "></div>
+                        <div style="background-color: #dc3545; height: {stopped_pct}%; "></div>
+                    </div>
+                    <div style="font-size: 10px;">
+                        完了: {completed}<br/>
+                        進行中: {in_progress}<br/>
+                        停止: {stopped}<br/>
+                        未着手: {not_started}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+def _render_delay_reason_distribution_chart(reports: List[DocumentReport]):
+    """遅延理由分布チャートを表示（15カテゴリ体系）"""
+    st.markdown("### 📈 遅延理由分布")
+    
+    # 15カテゴリの遅延理由を統計
+    delay_categories = [
+        "工程ミス", "要件漏れ", "無線機不具合", "物件不具合", "設計不足",
+        "電源遅延", "回線不具合", "免許不具合", "法規制", "産廃発生",
+        "オーナー交渉難航", "近隣交渉難航", "他事業者交渉難航", "親局不具合", "イレギュラ発生"
+    ]
+    
+    delay_counts = {category: 0 for category in delay_categories}
+    delay_counts["遅延なし"] = 0  # 遅延なしカテゴリを追加
+    
+    # レポートから遅延理由を集計
+    for report in reports:
+        if hasattr(report, 'delay_reasons') and report.delay_reasons:
+            # delay_reasonsフィールドがある場合
+            for delay_reason in report.delay_reasons:
+                if isinstance(delay_reason, dict):
+                    category = delay_reason.get('category', '')
+                    if category in delay_counts:
+                        delay_counts[category] += 1
+                    elif category:  # 未知のカテゴリ
+                        if "重大問題（要人的確認）" not in delay_counts:
+                            delay_counts["重大問題（要人的確認）"] = 0
+                        delay_counts["重大問題（要人的確認）"] += 1
+        else:
+            # delay_reasonsフィールドがない、または空の場合
+            delay_counts["遅延なし"] += 1
+    
+    # チャートデータを作成（ゼロ以外のみ）
+    chart_data = {k: v for k, v in delay_counts.items() if v > 0}
+    
+    if chart_data:
+        # バーチャートとして表示
+        try:
+            import plotly.express as px
+            import pandas as pd
+            
+            df = pd.DataFrame(list(chart_data.items()), columns=['遅延理由', '件数'])
+            fig = px.bar(df, x='遅延理由', y='件数', 
+                         title='遅延理由別件数',
+                         color='件数',
+                         color_continuous_scale='reds')
+            fig.update_layout(xaxis_tickangle=-45, height=400)
+            st.plotly_chart(fig, use_container_width=True)
+        except ImportError:
+            # Plotlyが利用できない場合はシンプルなバーチャート
+            st.bar_chart(chart_data)
+        
+        # 詳細テーブルは削除（ユーザーリクエストにより）
+    else:
+        st.info("現在、遅延理由のデータがありません。")
+        st.markdown("📋 **原因の可能性:**")
+        st.markdown("- データの事前処理が必要")
+        st.markdown("- LLMによる遅延理由抽出が未完了")
+        st.markdown("- delay_reasonsフィールドの設定問題")
+
+def _render_risk_distribution_chart(projects: List[ProjectSummary]):
+    """将来遅延リスク分布チャートを表示"""
+    st.markdown("<div class='custom-header'>将来遅延リスク分布</div>", unsafe_allow_html=True)
+    
+    # リスクレベル別にカウント
+    risk_counts = {'高': 0, '中': 0, '低': 0}
+    
+    for project in projects:
+        if project.risk_level:
+            risk_level = project.risk_level.value
+            if risk_level in risk_counts:
+                risk_counts[risk_level] += 1
+    
+    # チャートデータを作成（ゼロ以外のみ）
+    chart_data = {k: v for k, v in risk_counts.items() if v > 0}
+    
+    if chart_data:
+        try:
+            import plotly.graph_objects as go
+            
+            labels = list(chart_data.keys())
+            values = list(chart_data.values())
+            colors = {'高': '#dc3545', '中': '#ffc107', '低': '#28a745'}
+            chart_colors = [colors.get(label, '#6C757D') for label in labels]
+            
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=.4,
+                marker_colors=chart_colors
+            )])
+            
+            fig.update_layout(
+                title='',
+                showlegend=True,
+                height=300,
+                margin=dict(t=20, b=20, l=20, r=20),
+                font=dict(size=16),
+                legend=dict(font=dict(size=16))
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        except ImportError:
+            # Plotlyが利用できない場合はシンプルなバーチャート
+            st.bar_chart(chart_data)
+    else:
+        st.info("リスクレベルのデータがありません。")
+
+def _render_project_based_delay_reason_chart(projects: List[ProjectSummary]):
+    """プロジェクトベースで遅延理由分布チャートを表示（15カテゴリ体系）"""
+    st.markdown("<div class='custom-header'>遅延理由分布</div>", unsafe_allow_html=True)
+    
+    # 15カテゴリの遅延理由を統計
+    delay_categories = [
+        "工程ミス", "要件漏れ", "無線機不具合", "物件不具合", "設計不足",
+        "電源遅延", "回線不具合", "免許不具合", "法規制", "産廃発生",
+        "オーナー交渉難航", "近隣交渉難航", "他事業者交渉難航", "親局不具合", "イレギュラ発生"
+    ]
+    
+    delay_counts = {category: 0 for category in delay_categories}
+    delay_counts["遅延なし"] = 0  # 遅延なしカテゴリを追加
+    
+    # プロジェクトから遅延理由を集計
+    for project in projects:
+        if hasattr(project, 'delay_reasons') and project.delay_reasons:
+            # delay_reasonsフィールドがある場合
+            for delay_reason in project.delay_reasons:
+                if isinstance(delay_reason, dict):
+                    category = delay_reason.get('category', '')
+                    if category in delay_counts:
+                        delay_counts[category] += 1
+                    elif category:  # 未知のカテゴリ
+                        if "重大問題（要人的確認）" not in delay_counts:
+                            delay_counts["重大問題（要人的確認）"] = 0
+                        delay_counts["重大問題（要人的確認）"] += 1
+        else:
+            # delay_reasonsフィールドがない、または空の場合
+            delay_counts["遅延なし"] += 1
+    
+    # チャートデータを作成（ゼロ以外のみ）
+    chart_data = {k: v for k, v in delay_counts.items() if v > 0}
+    
+    if chart_data:
+        # パイチャートとして表示
+        try:
+            import plotly.graph_objects as go
+            
+            labels = list(chart_data.keys())
+            values = list(chart_data.values())
+            colors = ['#FF6B35', '#FFA500', '#FFD700', '#87CEEB', '#DDA0DD', '#98FB98', '#F0E68C', '#D3D3D3']
+            
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=.4,
+                marker_colors=colors[:len(labels)]
+            )])
+            
+            fig.update_layout(
+                title='',
+                showlegend=True,
+                height=300,
+                margin=dict(t=20, b=20, l=20, r=20),
+                font=dict(size=16),
+                legend=dict(font=dict(size=16))
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        except ImportError:
+            # Plotlyが利用できない場合はシンプルなバーチャート
+            st.bar_chart(chart_data)
+        
+        # 詳細テーブルは削除（ユーザーリクエストにより）
+    else:
+        st.info("現在、遅延理由のデータがありません。")
+        st.markdown("📋 **原因の可能性:**")
+        st.markdown("- プロジェクトに遅延理由が設定されていない")
+        st.markdown("- 最新レポートに遅延理由が含まれていない")
+        st.markdown("- delay_reasonsフィールドのプロジェクトへの反映が未完了")

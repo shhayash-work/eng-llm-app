@@ -232,7 +232,8 @@ class LLMService:
             options={
                 "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 2048
+                "num_predict": 2048,
+                "num_ctx": 10240  # コンテキストサイズを大幅拡張（10KB）
             }
         )
         return response['message']['content']
@@ -248,7 +249,8 @@ class LLMService:
             options={
                 "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 2048
+                "num_predict": 2048,
+                "num_ctx": 10240  # コンテキストサイズを大幅拡張（10KB）
             },
             stream=True
         )
