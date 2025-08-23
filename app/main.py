@@ -428,7 +428,7 @@ def render_sidebar() -> str:
         # システムヘッダー
         st.markdown("""
         <div class='sidebar-header'>
-            <h1>建設管理AI</h1>
+            <h1>工程スケスケくん</h1>
             <p>LLM連携システム</p>
         </div>
         """, unsafe_allow_html=True)
@@ -461,7 +461,7 @@ def render_sidebar() -> str:
         st.markdown("<div class='custom-header'>ナビゲーション</div>", unsafe_allow_html=True)
         page = st.radio(
             "表示したいページを選択:",
-            ["プロジェクト管理", "AI対話分析", "プロジェクト一覧", "レポート一覧", "データ品質監視"],
+            ["案件管理", "AI対話分析", "案件一覧", "報告書一覧", "データ品質監視"],
             label_visibility="collapsed"
         )
         
@@ -470,7 +470,7 @@ def render_sidebar() -> str:
         st.markdown("""
         <div style="background-color: #f0f0f0; padding: 12px; border-radius: 4px; margin-bottom: 16px;">
         <span style="color: #666; font-size: 14px;">
-        このダッシュボードでは、auRoraとSynapseのデータおよび各種報告書を基に統合LLM分析を活用し、レポートタイプ判定・ステータス・リスク・問題区分の抽出・緊急度スコアの算出・建設工程8段階の進捗推定・プロジェクト自動紐づけ（マルチ戦略：直接ID抽出＋ベクター検索）・分析困難度評価を1回の呼び出しで実施しています。分析結果には誤差が含まれる可能性があるため、最終判断は必ず現場情報と照合してください。
+        工程スケスケくんは、建設工程管理を効率化するAIアシスタントです。各種報告書を自動分析し、案件の状況把握・リスク評価・緊急度判定を行います。7段階建設工程（置局発注→基本同意→基本図承認→内諾→附帯着工→電波発射→工事検収）の進捗管理と、15カテゴリ遅延理由体系による問題分析で、現場の状況を的確に把握できます。分析結果は参考情報として活用し、最終判断は現場情報と照合してください。
         </span>
         </div>
         """, unsafe_allow_html=True)
@@ -842,7 +842,7 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     """データ品質監視ダッシュボード"""
     # データ品質セクションヘッダー（建設管理AIタイトルは共通ヘッダーで表示済み）
     st.markdown("<div class='custom-header'>データ品質監視</div>", unsafe_allow_html=True)
-    st.markdown("LLM出力の品質管理とシステムパフォーマンス監視")
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>LLM出力の品質管理とシステムパフォーマンス監視、案件マッピング信頼度管理：ベクター検索による案件マッピングの確認と修正</p>", unsafe_allow_html=True)
     
     if not reports:
         st.warning("⚠️ 監視対象のレポートがありません。")
@@ -919,6 +919,7 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     
     # 問題タイプ別集計
     st.markdown("<div class='custom-header'>問題タイプ別統計</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>検出された問題の種類別集計と傾向分析</p>", unsafe_allow_html=True)
     
     if unexpected_reports:
         all_issues = []
@@ -939,6 +940,7 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     
     # 対応提案
     st.markdown("<div class='custom-header'>推奨対応アクション</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>検出された問題に対する具体的な改善提案と対応手順</p>", unsafe_allow_html=True)
     
     if null_status or null_categories or null_risk:
         st.warning("**LLM出力の改善が必要:**")
@@ -957,8 +959,8 @@ def main():
         # システムメインヘッダー
         st.markdown("""
         <div class='main-header'>
-            <h1>建設管理アプリ</h1>
-            <p>効率的なプロジェクト管理とAI支援分析システム</p>
+            <h1>工程スケスケくん</h1>
+            <p>効率的な案件管理とAI支援分析システム</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -983,15 +985,15 @@ def main():
         projects = st.session_state.projects
         
         # ページルーティング
-        if selected_page == "プロジェクト管理":
+        if selected_page == "案件管理":
             # プロジェクト集約サービスでレポートを集約
             aggregator = ProjectAggregator()
             project_summaries = aggregator.aggregate_projects(reports)
             
             # 全件表示フラグの処理
             if st.session_state.get('show_all_projects', False):
-                # 全プロジェクト表示
-                st.markdown("<div class='custom-header'>全プロジェクト一覧</div>", unsafe_allow_html=True)
+                # 全案件表示
+                st.markdown("<div class='custom-header'>全案件一覧</div>", unsafe_allow_html=True)
                 from app.ui.project_dashboard import _render_all_projects_table
                 _render_all_projects_table(project_summaries, show_more_link=False)
                 
@@ -1001,13 +1003,13 @@ def main():
             else:
                 # 通常のダッシュボード表示
                 render_project_dashboard(project_summaries, reports)
-        elif selected_page == "プロジェクト一覧":
-            # プロジェクト一覧ページ
+        elif selected_page == "案件一覧":
+            # 案件一覧ページ
             aggregator = ProjectAggregator()
             project_summaries = aggregator.aggregate_projects(reports)
             from app.ui.project_list import render_project_list
             render_project_list(project_summaries, reports)
-        elif selected_page == "レポート一覧":
+        elif selected_page == "報告書一覧":
             render_report_list(reports)
         elif selected_page == "AI対話分析":
             render_analysis_panel(reports)
@@ -1017,7 +1019,7 @@ def main():
         # システムフッター
         st.markdown("""
         <div class='system-footer'>
-            <strong>建設管理アプリ</strong> | Version """ + VERSION + """ | Powered by Ollama + llama3.3
+            <strong>工程スケスケくん</strong> | Version """ + VERSION + """ | Powered by Ollama + llama3.3
         </div>
         """, unsafe_allow_html=True)
     

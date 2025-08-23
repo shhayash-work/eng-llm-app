@@ -1,6 +1,6 @@
 """
-プロジェクト一覧UI
-フィルター・表形式・進捗ステップ表示機能付きプロジェクト一覧ページ
+案件一覧UI
+フィルター・表形式・進捗ステップ表示機能付き案件一覧ページ
 """
 import streamlit as st
 import pandas as pd
@@ -11,23 +11,24 @@ from app.services.project_aggregator import ProjectSummary
 from app.models.report import DocumentReport
 
 def render_project_list(project_summaries: List[ProjectSummary], reports: List[DocumentReport] = None):
-    """プロジェクト一覧ページを表示"""
+    """案件一覧ページを表示"""
     
-    # プロジェクト詳細表示処理
+    # 案件詳細表示処理
     if st.session_state.get('show_project_details', False):
         selected_project_id = st.session_state.get('selected_project_id')
         if selected_project_id:
             _render_project_details(project_summaries, selected_project_id, reports)
-            if st.button("← プロジェクト一覧に戻る", key="back_to_project_list"):
+            if st.button("← 案件一覧に戻る", key="back_to_project_list"):
                 st.session_state.show_project_details = False
                 st.session_state.selected_project_id = None
                 st.rerun()
             return
     
-    st.markdown("<div class='custom-header'>プロジェクト一覧</div>", unsafe_allow_html=True)
+    st.markdown("<div class='custom-header'>案件一覧</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>全案件の詳細情報表示とフィルター機能による絞り込み検索</p>", unsafe_allow_html=True)
     
     if not project_summaries:
-        st.warning("表示可能なプロジェクトがありません。")
+        st.warning("表示可能な案件がありません。")
         return
     
     # フィルター表示
@@ -37,13 +38,13 @@ def render_project_list(project_summaries: List[ProjectSummary], reports: List[D
     filtered_projects = apply_project_filters(project_summaries)
     
     # 結果表示
-    st.markdown(f"**表示件数:** {len(filtered_projects)} / {len(project_summaries)} プロジェクト")
+    st.markdown(f"**表示件数:** {len(filtered_projects)} / {len(project_summaries)} 案件")
     
     # 詳細表示
     render_project_table(filtered_projects)
 
 def render_project_filters(projects: List[ProjectSummary]):
-    """プロジェクトフィルターを表示（表項目順に配置）"""
+    """案件フィルターを表示（表項目順に配置）"""
     st.markdown("<div class='custom-header'>フィルター設定</div>", unsafe_allow_html=True)
     
     col1, col2, col3, col4, col5, col6 = st.columns(6)

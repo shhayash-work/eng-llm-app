@@ -1,5 +1,5 @@
 """
-レポート表示UI
+報告書表示UI
 """
 import streamlit as st
 import pandas as pd
@@ -10,11 +10,12 @@ from app.models.report import DocumentReport, ReportType, StatusFlag
 from app.config.settings import RISK_FLAGS
 
 def render_report_list(reports: List[DocumentReport]):
-    """レポート一覧を表示"""
-    st.markdown("<div class='custom-header'>レポート一覧</div>", unsafe_allow_html=True)
+    """報告書一覧を表示"""
+    st.markdown("<div class='custom-header'>報告書一覧</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>全報告書の一覧表示とフィルター機能による検索・分析</p>", unsafe_allow_html=True)
     
     if not reports:
-        st.info("レポートがありません。")
+        st.info("報告書がありません。")
         return
     
     # フィルター機能
@@ -38,20 +39,20 @@ def render_report_filters(reports: List[DocumentReport]):
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
-        # プロジェクトIDフィルター（表項目順で先頭付近）
+        # 案件IDフィルター（表項目順で先頭付近）
         project_ids = list({r.project_id for r in reports if r.project_id})
         project_options = ["全て"] + sorted(project_ids) + ["未抽出"]
         st.session_state.filter_project_id = st.selectbox(
-            "プロジェクトID",
+            "案件ID",
             project_options,
             key="project_id_filter"
         )
     
     with col2:
-        # レポートタイプフィルター（ファイル名の次、レポート種別に対応）
+        # 報告書タイプフィルター（ファイル名の次、報告書種別に対応）
         report_types = ["全て"] + [rt.value for rt in ReportType]
         st.session_state.filter_report_type = st.selectbox(
-            "レポート種別",
+            "報告書種別",
             report_types,
             key="report_type_filter"
         )

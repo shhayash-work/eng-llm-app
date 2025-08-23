@@ -15,6 +15,7 @@ from app.services.vector_store import VectorStoreService
 def render_analysis_panel(reports: List[DocumentReport]):
     """分析パネルを表示"""
     st.markdown("<div class='custom-header'>AI対話分析</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>RAG技術による報告書検索とLLMによる自然言語での質問応答システム</p>", unsafe_allow_html=True)
     
     # 表示設定（セクション上部に左寄せ配置）
     st.markdown("**表示設定**")
@@ -32,6 +33,7 @@ def render_analysis_panel(reports: List[DocumentReport]):
 def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = True, show_thinking: bool = False):
     """質問応答インターフェースを表示"""
     st.markdown("<div class='custom-header'>建設工程について質問する</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>自然言語で建設工程や案件状況について質問し、関連報告書を検索してAIが回答</p>", unsafe_allow_html=True)
     
     # サンプル質問
     st.write("**サンプル質問:**")
