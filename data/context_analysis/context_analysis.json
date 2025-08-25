@@ -1,0 +1,297 @@
+{
+  "MO0006": {
+    "project_id": "MO0006",
+    "overall_status": "normal",
+    "overall_risk": "低",
+    "current_phase": "基本同意",
+    "construction_phases": {},
+    "progress_trend": "停滞",
+    "issue_continuity": "不明",
+    "report_frequency": "不明",
+    "analysis_confidence": 0.5,
+    "analysis_summary": "",
+    "recommended_actions": [],
+    "delay_reasons_management": [],
+    "confidence_details": {
+      "overall_status": 0.5,
+      "overall_risk": 0.5,
+      "current_phase": 0.5,
+      "progress_trend": 0.5,
+      "issue_continuity": 0.5,
+      "report_frequency": 0.5
+    },
+    "evidence_details": {
+      "overall_status": "",
+      "overall_risk": "",
+      "current_phase": "",
+      "progress_trend": "",
+      "issue_continuity": "",
+      "report_frequency": ""
+    },
+    "last_updated": "2025-08-25T14:38:08.429774",
+    "reports_count": 3
+  },
+  "MO0003": {
+    "project_id": "MO0003",
+    "overall_status": "minor_delay",
+    "overall_risk": "中",
+    "current_phase": "基本同意",
+    "construction_phases": {
+      "置局発注": {
+        "status": "完了",
+        "confidence": 0.8,
+        "evidence": "基本同意段階に進んでいることから推定"
+      },
+      "基本同意": {
+        "status": "実施中",
+        "confidence": 0.9,
+        "evidence": "交渉難航により基本同意取得が停滞"
+      },
+      "基本図承認": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本同意が完了していないため"
+      },
+      "内諾": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本同意が完了していないため"
+      },
+      "附帯着工": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本同意が完了していないため"
+      },
+      "電波発射": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本同意が完了していないため"
+      },
+      "工事検収": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本同意が完了していないため"
+      }
+    },
+    "progress_trend": "悪化",
+    "issue_continuity": "継続",
+    "report_frequency": "正常",
+    "analysis_confidence": 0.85,
+    "analysis_summary": "建設工程が順調に進行しているが、オーナー交渉難航により遅延が発生している",
+    "recommended_actions": [
+      "オーナーとの面談機会確保を最優先で実施",
+      "管理会社との連携強化による交渉支援",
+      "基本同意取得のための追加的な措置を講じる"
+    ],
+    "delay_reasons_management": [
+      {
+        "delay_category": "オーナー交渉難航",
+        "delay_subcategory": "基本同意に難航",
+        "description": "オーナーとの面談機会が確保できない",
+        "status": "継続中",
+        "current_response": "管理会社経由での調整継続",
+        "confidence": 0.9,
+        "evidence": "複数の報告書で同様の問題が継続報告されている",
+        "first_reported": "2025-08-22",
+        "last_updated": "2025-08-22"
+      }
+    ],
+    "confidence_details": {
+      "overall_status": 0.9,
+      "overall_risk": 0.85,
+      "current_phase": 0.95,
+      "progress_trend": 0.85,
+      "issue_continuity": 0.9,
+      "report_frequency": 0.85
+    },
+    "evidence_details": {
+      "overall_status": "オーナー交渉難航により基本同意取得が遅れている",
+      "overall_risk": "オーナー交渉難航によりリスクが上昇している",
+      "current_phase": "最新の報告書で基本同意段階での交渉難航が報告されている",
+      "progress_trend": "オーナー交渉難航により進捗が遅れている",
+      "issue_continuity": "オーナー交渉難航が複数報告書で継続報告されている",
+      "report_frequency": "適切な間隔で報告書が提出されている"
+    },
+    "last_updated": "2025-08-25T14:43:13.905683",
+    "reports_count": 3
+  },
+  "MO0001": {
+    "project_id": "MO0001",
+    "overall_status": "normal",
+    "overall_risk": "低",
+    "current_phase": "基本図承認",
+    "construction_phases": {
+      "置局発注": {
+        "status": "完了",
+        "confidence": 0.8,
+        "evidence": "基本同意段階に進んでいることから推定"
+      },
+      "基本同意": {
+        "status": "完了",
+        "confidence": 0.95,
+        "evidence": "交渉進捗レポートで取得完了と明記"
+      },
+      "基本図承認": {
+        "status": "実施中",
+        "confidence": 0.95,
+        "evidence": "建設見積書で基本図承認段階と明記"
+      },
+      "内諾": {
+        "status": "未着手",
+        "confidence": 0.9,
+        "evidence": "まだ基本図承認段階のため"
+      },
+      "附帯着工": {
+        "status": "未着手",
+        "confidence": 0.9,
+        "evidence": "まだ基本図承認段階のため"
+      },
+      "電波発射": {
+        "status": "未着手",
+        "confidence": 0.9,
+        "evidence": "まだ基本図承認段階のため"
+      },
+      "工事検収": {
+        "status": "未着手",
+        "confidence": 0.9,
+        "evidence": "まだ基本図承認段階のため"
+      }
+    },
+    "progress_trend": "改善",
+    "issue_continuity": "解決済み",
+    "report_frequency": "正常",
+    "analysis_confidence": 0.85,
+    "analysis_summary": "基本同意取得完了後、基本図承認段階で順調に進行中",
+    "recommended_actions": [
+      "基本図承認の完了に向けた継続的な監視",
+      "次工程（内諾）の準備開始",
+      "順調な進行状況の維持"
+    ],
+    "delay_reasons_management": [],
+    "confidence_details": {
+      "overall_status": 0.9,
+      "overall_risk": 0.85,
+      "current_phase": 0.9,
+      "progress_trend": 0.85,
+      "issue_continuity": 0.9,
+      "report_frequency": 0.9
+    },
+    "evidence_details": {
+      "overall_status": "両報告書で順調進行が確認され、工程が適切に進んでいる",
+      "overall_risk": "問題の報告がなく、順調に進行している",
+      "current_phase": "最新の建設見積書で基本図承認段階と明記",
+      "progress_trend": "基本同意取得完了から基本図承認へ順調に進行",
+      "issue_continuity": "両報告書で問題の報告なし",
+      "report_frequency": "適切な間隔で報告書が提出されている"
+    },
+    "last_updated": "2025-08-25T14:44:34.972507",
+    "reports_count": 3
+  },
+  "MO0002": {
+    "project_id": "MO0002",
+    "overall_status": "minor_delay",
+    "overall_risk": "中",
+    "current_phase": "基本図承認",
+    "construction_phases": {
+      "置局発注": {
+        "status": "完了",
+        "confidence": 0.8,
+        "evidence": "基本同意段階に進んでいることから推定"
+      },
+      "基本同意": {
+        "status": "完了",
+        "confidence": 0.95,
+        "evidence": "交渉難航により基本同意取得が停滞"
+      },
+      "基本図承認": {
+        "status": "実施中",
+        "confidence": 0.9,
+        "evidence": "建設見積書で基本図承認段階と明記"
+      },
+      "内諾": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本図承認が完了していないため"
+      },
+      "附帯着工": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本図承認が完了していないため"
+      },
+      "電波発射": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本図承認が完了していないため"
+      },
+      "工事検収": {
+        "status": "未着手",
+        "confidence": 0.95,
+        "evidence": "基本図承認が完了していないため"
+      }
+    },
+    "progress_trend": "悪化",
+    "issue_continuity": "継続",
+    "report_frequency": "正常",
+    "analysis_confidence": 0.85,
+    "analysis_summary": "案件MO0002は、基本同意段階でオーナー交渉が難航し、近隣住民からの反対意見もあり、軽微な遅延が発生している。建設工程の進捗状況は、置局発注と基本同意が完了したものの、基本図承認以降の工程で遅れが見られる。",
+    "recommended_actions": [
+      "オーナーとの面談機会確保を最優先で実施",
+      "近隣住民への説明会開催と合意形成",
+      "管理会社との連携強化による交渉支援",
+      "設計見直しと工期調整の迅速な実施"
+    ],
+    "delay_reasons_management": [
+      {
+        "delay_category": "オーナー交渉難航",
+        "delay_subcategory": "基本同意に難航",
+        "description": "オーナーとの面談機会が確保できない",
+        "status": "継続中",
+        "current_response": "管理会社経由での調整継続",
+        "confidence": 0.9,
+        "evidence": "複数の報告書で同様の問題が継続報告",
+        "first_reported": "2025-08-22",
+        "last_updated": "2025-08-22"
+      },
+      {
+        "delay_category": "近隣交渉難航",
+        "delay_subcategory": "近隣住民反対",
+        "description": "近隣住民からの反対意見が発生",
+        "status": "新規発生",
+        "current_response": "住民説明会の開催検討",
+        "confidence": 0.85,
+        "evidence": "最新報告書で新たに報告された問題",
+        "first_reported": "2025-08-22",
+        "last_updated": "2025-08-22"
+      },
+      {
+        "delay_category": "要件漏れ",
+        "delay_subcategory": "要件変更",
+        "description": "設備干渉の不許可に伴う設計見直しのため、工期を変更",
+        "status": "新規発生",
+        "current_response": "設計見直しと工期調整",
+        "confidence": 0.85,
+        "evidence": "最新報告書で新たに報告された問題",
+        "first_reported": "2025-08-22",
+        "last_updated": "2025-08-22"
+      }
+    ],
+    "confidence_details": {
+      "overall_status": 0.9,
+      "overall_risk": 0.85,
+      "current_phase": 0.95,
+      "progress_trend": 0.85,
+      "issue_continuity": 0.9,
+      "report_frequency": 0.85
+    },
+    "evidence_details": {
+      "overall_status": "複数の報告書で交渉難航が継続し、新たな問題も発生",
+      "overall_risk": "オーナー交渉難航と近隣住民反対によりリスクが上昇",
+      "current_phase": "最新の報告書で基本図承認段階での問題が報告",
+      "progress_trend": "オーナー交渉難航と近隣住民反対により進捗状況が悪化",
+      "issue_continuity": "オーナー交渉難航が複数報告書で継続報告",
+      "report_frequency": "適切な間隔で報告書が提出されている"
+    },
+    "last_updated": "2025-08-25T14:46:44.954518",
+    "reports_count": 3
+  }
+}

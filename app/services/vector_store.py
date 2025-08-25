@@ -153,6 +153,102 @@ class VectorStoreService:
             logger.error(f"Failed to add document: {e}")
             return False
     
+    def add_context_analysis(self, project_id: str, analysis_data: Dict[str, Any]) -> bool:
+        """統合分析結果をベクターストアに追加"""
+        try:
+            # コレクションの存在確認と再取得
+            try:
+                self.collection = self.client.get_collection(self.collection_name)
+            except Exception:
+                # コレクションが存在しない場合は新規作成
+                self.collection = self.client.create_collection(
+                    name=self.collection_name,
+                    metadata={"description": f"建設文書のベクターストア ({EMBEDDING_MODEL})"}
+                )
+                logger.info(f"Collection recreated: {self.collection_name}")
+            
+            # 統合分析結果をテキスト化
+            analysis_text = self._format_context_analysis_for_embedding(analysis_data)
+            
+            # Ollamaエンベディング生成
+            response = self.ollama_client.embeddings(
+                model=self.embedding_model_name,
+                prompt=analysis_text
+            )
+            embedding = response['embedding']
+            
+            # メタデータ作成（報告書と区別するため）
+            metadata = {
+                'type': 'context_analysis',
+                'project_id': project_id,
+                'overall_status': analysis_data.get('overall_status', '不明'),
+                'overall_risk': analysis_data.get('overall_risk', '不明'),
+                'current_phase': analysis_data.get('current_phase', '不明'),
+                'progress_trend': analysis_data.get('progress_trend', '不明'),
+                'issue_continuity': analysis_data.get('issue_continuity', '不明'),
+                'analysis_confidence': analysis_data.get('analysis_confidence', 0.0),
+                'reports_count': analysis_data.get('reports_count', 0),
+                'last_updated': analysis_data.get('last_updated', '')
+            }
+            
+            # ベクターストアに追加
+            doc_id = f"context_analysis_{project_id}"
+            self.collection.upsert(  # upsertで既存データを更新
+                embeddings=[embedding],
+                documents=[analysis_text],
+                metadatas=[metadata],
+                ids=[doc_id]
+            )
+            
+            logger.info(f"Context analysis added: {project_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to add context analysis for {project_id}: {e}")
+            return False
+    
+    def _format_context_analysis_for_embedding(self, analysis_data: Dict[str, Any]) -> str:
+        """統合分析結果をエンベディング用テキストに変換"""
+        parts = []
+        
+        # 基本情報
+        parts.append(f"案件ID: {analysis_data.get('project_id', '不明')}")
+        parts.append(f"総合ステータス: {analysis_data.get('overall_status', '不明')}")
+        parts.append(f"総合リスク: {analysis_data.get('overall_risk', '不明')}")
+        parts.append(f"現在工程: {analysis_data.get('current_phase', '不明')}")
+        parts.append(f"進捗傾向: {analysis_data.get('progress_trend', '不明')}")
+        parts.append(f"問題継続性: {analysis_data.get('issue_continuity', '不明')}")
+        
+        # 分析サマリ
+        if analysis_data.get('analysis_summary'):
+            parts.append(f"分析サマリ: {analysis_data['analysis_summary']}")
+        
+        # 建設工程詳細
+        construction_phases = analysis_data.get('construction_phases', {})
+        if construction_phases:
+            parts.append("建設工程状況:")
+            for phase, info in construction_phases.items():
+                if isinstance(info, dict):
+                    status = info.get('status', '不明')
+                    parts.append(f"  {phase}: {status}")
+        
+        # 遅延理由管理
+        delay_reasons = analysis_data.get('delay_reasons_management', [])
+        if delay_reasons:
+            parts.append("遅延理由:")
+            for reason in delay_reasons[:3]:  # 上位3件
+                category = reason.get('delay_category', '')
+                description = reason.get('description', '')
+                status = reason.get('status', '')
+                parts.append(f"  {category}: {description} (ステータス: {status})")
+        
+        # 推奨アクション
+        actions = analysis_data.get('recommended_actions', [])
+        if actions:
+            parts.append(f"推奨アクション: {', '.join(actions[:3])}")
+        
+        return "\n".join(parts)
+    
     def search_similar_documents(
         self, 
         query: str, 

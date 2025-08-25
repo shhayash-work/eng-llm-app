@@ -232,8 +232,8 @@ class LLMService:
             options={
                 "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 2048,
-                "num_ctx": 10240  # コンテキストサイズを大幅拡張（10KB）
+                "num_predict": 3072,  # コンテキストサイズに合わせて調整
+                "num_ctx": 16384
             }
         )
         return response['message']['content']
@@ -249,8 +249,8 @@ class LLMService:
             options={
                 "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 2048,
-                "num_ctx": 10240  # コンテキストサイズを大幅拡張（10KB）
+                "num_predict": 3072,  # コンテキストサイズに合わせて調整
+                "num_ctx": 16384
             },
             stream=True
         )
@@ -340,6 +340,51 @@ class LLMService:
         except Exception as e:
             logger.error(f"Streaming QA failed: {e}")
             yield f"申し訳ございませんが、回答の生成中にエラーが発生しました: {str(e)}"
+    
+    def analyze_with_context(self, prompt: str) -> Dict[str, Any]:
+        """統合分析用のコンテキスト分析"""
+        try:
+            response = self._make_request(prompt)
+            return self._extract_and_parse_json(response)
+        except Exception as e:
+            logger.error(f"Ollama context analysis failed: {e}")
+            return None
+    
+    def _extract_and_parse_json(self, response: str) -> Dict[str, Any]:
+        """レスポンスからJSONを抽出してパース"""
+        try:
+            logger.debug(f"LLM response: {response[:200]}...")
+            
+            # JSONパースを試行
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_str = response[json_start:json_end]
+                
+                # JSONの前処理（一般的な問題を修正）
+                json_str = self._clean_json_string(json_str)
+                
+                try:
+                    return json.loads(json_str)
+                except json.JSONDecodeError as json_e:
+                    logger.warning(f"JSON parse failed, attempting repair: {str(json_e)[:100]}")
+                    # JSON修復を試行
+                    repaired_json = self._repair_json_string(json_str)
+                    if repaired_json:
+                        try:
+                            return json.loads(repaired_json)
+                        except json.JSONDecodeError:
+                            logger.warning("JSON repair failed")
+                            return None
+                    return None
+            else:
+                logger.warning("No JSON found in response")
+                return None
+                
+        except Exception as e:
+            logger.error(f"JSON extraction failed: {e}")
+            return None
     
     def _fallback_analysis(self, content: str, llm_response: str) -> Dict[str, Any]:
         """JSONパースに失敗した場合のフォールバック分析"""
@@ -449,6 +494,205 @@ class LLMService:
             "key_points": ["エラーにより自動分析失敗"]
         }
     
+    def analyze_with_context(self, context_prompt: str) -> Optional[Dict[str, Any]]:
+        """文脈を考慮した統合分析（案件レベル分析用）"""
+        try:
+            # プロバイダー別の処理
+            if self.provider == "ollama":
+                return self._analyze_with_context_ollama(context_prompt)
+            elif self.provider == "openai":
+                return self._analyze_with_context_openai(context_prompt)
+            elif self.provider == "anthropic":
+                return self._analyze_with_context_anthropic(context_prompt)
+            else:
+                logger.error(f"Unsupported provider for context analysis: {self.provider}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Context analysis failed: {e}")
+            return None
+    
+    def _analyze_with_context_ollama(self, context_prompt: str) -> Optional[Dict[str, Any]]:
+        """Ollama統合分析"""
+        try:
+            response = ollama.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": context_prompt}
+                ],
+                options={
+                    "temperature": 0.1,
+                    "top_p": 0.9,
+                    "num_predict": 3072,
+                    "num_ctx": 16384
+                }
+            )
+            
+            content = response['message']['content']
+            return self._extract_and_parse_json(content)
+            
+        except Exception as e:
+            logger.error(f"Ollama context analysis failed: {e}")
+            return None
+    
+    def _analyze_with_context_openai(self, context_prompt: str) -> Optional[Dict[str, Any]]:
+        """OpenAI統合分析"""
+        try:
+            if not ChatOpenAI:
+                logger.error("OpenAI not available")
+                return None
+            
+            llm = ChatOpenAI(
+                model=self.model,
+                api_key=self.api_key,
+                temperature=0.1
+            )
+            
+            messages = [
+                ("system", SYSTEM_PROMPT),
+                ("user", context_prompt)
+            ]
+            
+            response = llm.invoke(messages)
+            return self._extract_and_parse_json(response.content)
+            
+        except Exception as e:
+            logger.error(f"OpenAI context analysis failed: {e}")
+            return None
+    
+    def _analyze_with_context_anthropic(self, context_prompt: str) -> Optional[Dict[str, Any]]:
+        """Anthropic統合分析"""
+        try:
+            if not ChatAnthropic:
+                logger.error("Anthropic not available")
+                return None
+            
+            llm = ChatAnthropic(
+                model=self.model,
+                api_key=self.api_key,
+                temperature=0.1
+            )
+            
+            messages = [
+                ("system", SYSTEM_PROMPT),
+                ("user", context_prompt)
+            ]
+            
+            response = llm.invoke(messages)
+            return self._extract_and_parse_json(response.content)
+            
+        except Exception as e:
+            logger.error(f"Anthropic context analysis failed: {e}")
+            return None
+    
+    def answer_question(self, question: str, context: str) -> str:
+        """質問応答処理"""
+        try:
+            if not context or context.strip() == "":
+                return "関連する文書が見つかりませんでした。質問を変更してお試しください。"
+            
+            # QAプロンプトを構築
+            qa_prompt = f"""
+以下の文脈情報を基に、質問に回答してください。
+
+【文脈情報】
+{context}
+
+【質問】
+{question}
+
+【回答指示】
+- 文脈情報に基づいて具体的に回答してください
+- 情報が不足している場合は、その旨を明記してください
+- 推測ではなく、文脈に記載されている事実を基に回答してください
+"""
+            
+            # プロバイダー別の処理
+            if self.provider == "ollama":
+                return self._answer_with_ollama(qa_prompt)
+            elif self.provider == "openai":
+                return self._answer_with_openai(qa_prompt)
+            elif self.provider == "anthropic":
+                return self._answer_with_anthropic(qa_prompt)
+            else:
+                return f"サポートされていないプロバイダー: {self.provider}"
+                
+        except Exception as e:
+            logger.error(f"Question answering failed: {e}")
+            return f"回答生成中にエラーが発生しました: {str(e)}"
+    
+    def _answer_with_ollama(self, qa_prompt: str) -> str:
+        """Ollama質問応答"""
+        try:
+            response = ollama.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "あなたは建設プロジェクト管理の専門家です。提供された文脈情報を基に、正確で有用な回答を提供してください。"},
+                    {"role": "user", "content": qa_prompt}
+                ],
+                options={
+                    "temperature": 0.1,
+                    "top_p": 0.9,
+                    "num_predict": 1024,
+                    "num_ctx": 8192
+                }
+            )
+            
+            return response['message']['content']
+            
+        except Exception as e:
+            logger.error(f"Ollama QA failed: {e}")
+            return f"Ollama回答生成エラー: {str(e)}"
+    
+    def _answer_with_openai(self, qa_prompt: str) -> str:
+        """OpenAI質問応答"""
+        try:
+            if not ChatOpenAI:
+                return "OpenAI が利用できません"
+            
+            llm = ChatOpenAI(
+                model=self.model,
+                api_key=self.api_key,
+                temperature=0.1
+            )
+            
+            messages = [
+                ("system", "あなたは建設プロジェクト管理の専門家です。提供された文脈情報を基に、正確で有用な回答を提供してください。"),
+                ("user", qa_prompt)
+            ]
+            
+            response = llm.invoke(messages)
+            return response.content
+            
+        except Exception as e:
+            logger.error(f"OpenAI QA failed: {e}")
+            return f"OpenAI回答生成エラー: {str(e)}"
+    
+    def _answer_with_anthropic(self, qa_prompt: str) -> str:
+        """Anthropic質問応答"""
+        try:
+            if not ChatAnthropic:
+                return "Anthropic が利用できません"
+            
+            llm = ChatAnthropic(
+                model=self.model,
+                api_key=self.api_key,
+                temperature=0.1
+            )
+            
+            messages = [
+                ("system", "あなたは建設プロジェクト管理の専門家です。提供された文脈情報を基に、正確で有用な回答を提供してください。"),
+                ("user", qa_prompt)
+            ]
+            
+            response = llm.invoke(messages)
+            return response.content
+            
+        except Exception as e:
+            logger.error(f"Anthropic QA failed: {e}")
+            return f"Anthropic回答生成エラー: {str(e)}"
+
     def get_provider_info(self) -> Dict[str, Any]:
         """現在のプロバイダー情報を取得"""
         return {

@@ -36,6 +36,7 @@ class ConstructionProject:
     current_phase: str
     phases: List[ConstructionPhase]
     risk_level: RiskLevel
+    start_date: Optional[datetime] = None
     estimated_completion: Optional[datetime] = None
     responsible_person: Optional[str] = None
     notes: Optional[str] = None

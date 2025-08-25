@@ -7,12 +7,28 @@ import plotly.graph_objects as go
 from typing import List, Dict, Any
 import pandas as pd
 from datetime import datetime, timedelta
+import logging
 
 from app.models.report import DocumentReport, FlagType
 from app.services.llm_service import get_llm_service
 from app.services.vector_store import VectorStoreService
+import json
+from pathlib import Path
 
-def render_analysis_panel(reports: List[DocumentReport]):
+logger = logging.getLogger(__name__)
+
+def load_context_analysis() -> Dict[str, Any]:
+    """統合分析結果を読み込み"""
+    context_file = Path("data/context_analysis/context_analysis.json")
+    if context_file.exists():
+        try:
+            with open(context_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            st.warning(f"統合分析結果の読み込みに失敗しました: {e}")
+    return {}
+
+def render_analysis_panel(reports: List[DocumentReport], audit_type: str = "工程"):
     """分析パネルを表示"""
     st.markdown("<div class='custom-header'>AI対話分析</div>", unsafe_allow_html=True)
     st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>RAG技術による報告書検索とLLMによる自然言語での質問応答システム</p>", unsafe_allow_html=True)
@@ -28,22 +44,35 @@ def render_analysis_panel(reports: List[DocumentReport]):
     st.divider()
     
     # 質問応答インターフェース
-    render_qa_interface(reports, use_streaming, show_thinking)
+    render_qa_interface(reports, use_streaming, show_thinking, audit_type)
 
-def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = True, show_thinking: bool = False):
+def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = True, show_thinking: bool = False, audit_type: str = "工程"):
     """質問応答インターフェースを表示"""
-    st.markdown("<div class='custom-header'>建設工程について質問する</div>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>自然言語で建設工程や案件状況について質問し、関連報告書を検索してAIが回答</p>", unsafe_allow_html=True)
+    if audit_type == "報告書":
+        st.markdown("<div class='custom-header'>報告書について質問する</div>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>報告書の内容や品質に関する質問にAIが回答（報告書特化RAG処理）</p>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='custom-header'>建設工程について質問する</div>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>統合分析結果→関連工程の報告書を効率的に検索してAIが回答（効率的RAG処理）</p>", unsafe_allow_html=True)
     
-    # サンプル質問
+    # サンプル質問（チェック内容に応じて変更）
     st.write("**サンプル質問:**")
-    sample_questions = [
-        "現在進行中のトラブル案件はありますか？",
-        "最も緊急度の高い案件は何ですか？",
-        "住民反対が発生している現場はありますか？",
-        "工期遅延のリスクがある案件を教えてください",
-        "設備不具合が報告されている現場はどこですか？"
-    ]
+    if audit_type == "報告書":
+        sample_questions = [
+            "報告書の記載内容に不備があるものはありますか？",
+            "必須項目が不足している報告書を教えてください",
+            "遅延理由の分類が困難な報告書はありますか？",
+            "LLMの分析信頼度が低い報告書はどれですか？",
+            "報告書の品質に問題があるものを特定してください"
+        ]
+    else:
+        sample_questions = [
+            "現在進行中のトラブル工程はありますか？",
+            "最も緊急度の高い工程は何ですか？",
+            "住民反対が発生している現場はありますか？",
+            "工期遅延のリスクがある工程を教えてください",
+            "設備不具合が報告されている現場はどこですか？"
+        ]
     
     selected_question = st.selectbox(
         "サンプル質問を選択（または下に独自の質問を入力）",
@@ -74,22 +103,35 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
                 
                 # 検索結果の可視化
                 if search_results:
-                    relevant_docs = [r for r in search_results if (1 - r.get('distance', 0.0)) > 0.3]
+                    # 正規化された類似度で関連文書を判定
+                    relevant_docs = []
+                    for r in search_results:
+                        distance = r.get('distance', 0.0)
+                        similarity_score = 1.0 / (1.0 + distance / 100.0)
+                        if similarity_score > 0.1:
+                            relevant_docs.append((r, similarity_score))
+                    
+                    # 閾値以上のものがない場合は上位3件を使用
+                    if not relevant_docs:
+                        for r in search_results[:3]:
+                            distance = r.get('distance', 0.0)
+                            similarity_score = 1.0 / (1.0 + distance / 100.0)
+                            relevant_docs.append((r, similarity_score))
+                    
                     if relevant_docs:
                         st.success(f"✅ {len(relevant_docs)}件の関連文書を発見")
                         
                         # 検索結果の詳細表示（オプション）
                         if show_thinking:
                             with st.expander("🔍 検索された関連文書"):
-                                for i, result in enumerate(relevant_docs[:3]):
-                                    similarity = 1 - result.get('distance', 0.0)
+                                for i, (result, similarity) in enumerate(relevant_docs[:3]):
                                     metadata = result.get('metadata', {})
                                     st.write(f"**{i+1}. {metadata.get('file_name', '不明')}** (類似度: {similarity:.3f})")
                                     st.write(f"レポート種別: {metadata.get('report_type', '不明')}")
                                     st.write(f"内容抜粋: {result.get('content', '')[:150]}...")
                                     st.divider()
                     else:
-                        st.warning("⚠️ 関連度の高い文書が見つからないため、最新レポートを使用")
+                        st.success("✅ 関連文書を検索しました（上位結果を使用）")
                 else:
                     st.warning("⚠️ ベクター検索でエラーが発生、最新レポートを使用")
             
@@ -128,10 +170,10 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
                 # 従来の一括表示（元のスタイル維持）
                 if show_thinking:
                     with st.spinner("🤖 AIが回答を生成中..."):
-                        answer = process_qa_question(question, reports)
+                        answer = process_qa_question(question, reports, audit_type)
                 else:
                     with st.spinner("🤖 AIが回答を生成中..."):
-                        answer = process_qa_question(question, reports)
+                        answer = process_qa_question(question, reports, audit_type)
                 
                 # 元のシンプルなinfo表示
                 with response_placeholder.container():
@@ -142,55 +184,243 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
         else:
             st.warning("質問を入力してください。")
 
-def process_qa_question(question: str, reports: List[DocumentReport]) -> str:
-    """質問応答を処理（RAGシステム）"""
+def process_qa_question(question: str, reports: List[DocumentReport], audit_type: str = "工程") -> str:
+    """効率的なRAG処理による質問応答（チェック内容に応じて検索方法を変更）"""
     try:
-        # 🔍 RAGシステム: 質問内容に基づいて関連文書を動的検索
         vector_store = VectorStoreService()
+        
+        if audit_type == "報告書":
+            # 報告書チェック：報告書要約の出力結果をベクトル検索
+            return _process_report_audit_question(question, vector_store)
+        else:
+            # 工程チェック：統合分析結果をベクトル検索
+            return _process_project_audit_question(question, reports, vector_store)
+        
+    except Exception as e:
+        return f"申し訳ございませんが、回答の生成中にエラーが発生しました: {str(e)}"
+
+def _process_report_audit_question(question: str, vector_store: VectorStoreService) -> str:
+    """報告書チェック用の質問処理：報告書要約をベクトル検索"""
+    try:
+        # 報告書要約の出力結果を検索（統合分析結果を除外）
         search_results = vector_store.search_similar_documents(
-            query=question, 
-            n_results=8  # より多くの関連文書を検索
+            query=question,
+            n_results=8
         )
         
-        # 検索結果から高品質なコンテキストを構築
+        # 統合分析結果を除外し、報告書要約のみを対象とする
+        filtered_results = [
+            result for result in search_results 
+            if result.get('metadata', {}).get('type') != 'context_analysis'
+        ]
+        
+        # まず閾値以上のものを探す
+        high_similarity_results = []
+        for result in filtered_results:
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
+            if similarity_score > 0.1:
+                high_similarity_results.append((result, similarity_score))
+        
+        # 閾値以上のものがない場合は上位3件を使用
+        if not high_similarity_results:
+            high_similarity_results = []
+            for result in filtered_results[:3]:  # 上位3件
+                distance = result.get('distance', 0.0)
+                similarity_score = 1.0 / (1.0 + distance / 100.0)
+                high_similarity_results.append((result, similarity_score))
+        
         context_parts = []
+        for i, (result, similarity_score) in enumerate(high_similarity_results):
+            metadata = result.get('metadata', {})
+            content = result.get('content', '')
+            
+            context_parts.append(
+                f"=== 報告書要約{i+1} (類似度: {similarity_score:.3f}) ===\\n"
+                f"ファイル名: {metadata.get('file_name', '不明')}\\n"
+                f"レポート種別: {metadata.get('report_type', '不明')}\\n"
+                f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
+                f"ステータス: {metadata.get('status_flag', '不明')}\\n"
+                f"要約内容: {content[:400]}...\\n"
+            )
         
-        if search_results:
-            for i, result in enumerate(search_results):
-                similarity_score = 1 - result.get('distance', 0.0)
-                if similarity_score > 0.3:  # 類似度閾値でフィルタリング
-                    metadata = result.get('metadata', {})
-                    content = result.get('content', '')
-                    
-                    context_parts.append(
-                        f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
-                        f"ファイル名: {metadata.get('file_name', '不明')}\\n"
-                        f"レポート種別: {metadata.get('report_type', '不明')}\\n"
-                        f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
-                        f"内容: {content[:300]}...\\n"
-                    )
+        if not context_parts:
+            return "関連する報告書要約が見つかりませんでした。質問を変更してお試しください。"
         
-        # フォールバック: ベクター検索で結果が少ない場合は最新レポートも追加
-        if len(context_parts) < 3:
-            for i, report in enumerate(reports[:5]):
-                if report.analysis_result:
-                    context_parts.append(
-                        f"最新レポート{i+1}: {report.file_name}\\n"
-                        f"要約: {report.analysis_result.summary}\\n"
-                        f"リスクレベル: {getattr(report, 'risk_level', '不明')}\\n"
-                        f"問題: {', '.join(report.analysis_result.issues)}\\n"
-                    )
-        
+        # LLMに質問
         context = "\\n".join(context_parts)
-        
-        # LLMに質問（シングルトンインスタンス使用）
         llm_service = get_llm_service()
         answer = llm_service.answer_question(question, context)
         
         return answer
         
     except Exception as e:
-        return f"申し訳ございませんが、回答の生成中にエラーが発生しました: {str(e)}"
+        return f"報告書チェックの質問処理でエラーが発生しました: {str(e)}"
+
+def _process_project_audit_question(question: str, reports: List[DocumentReport], vector_store: VectorStoreService) -> str:
+    """工程チェック用の質問処理：統合分析結果をベクトル検索"""
+    try:
+        # 🔍 Step 1: 統合分析結果から関連工程を検索
+        context_results = vector_store.search_similar_documents(
+            query=question,
+            n_results=5,
+            filter_metadata={'type': 'context_analysis'}  # 統合分析結果のみ検索
+        )
+        
+        if not context_results:
+            # フォールバック: 通常の報告書検索
+            return _fallback_search(question, reports, vector_store)
+        
+        # 🎯 Step 2: 関連工程IDを特定
+        related_project_ids = []
+        context_parts = []
+        
+        # まず閾値以上のものを探す
+        high_similarity_results = []
+        for result in context_results:
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
+            if similarity_score > 0.1:
+                high_similarity_results.append((result, similarity_score))
+        
+        # 閾値以上のものがない場合は上位3件を使用
+        if not high_similarity_results:
+            high_similarity_results = []
+            for result in context_results[:3]:  # 上位3件
+                distance = result.get('distance', 0.0)
+                similarity_score = 1.0 / (1.0 + distance / 100.0)
+                high_similarity_results.append((result, similarity_score))
+        
+        for result, similarity_score in high_similarity_results:
+            metadata = result.get('metadata', {})
+            project_id = metadata.get('project_id')
+            
+            if project_id and project_id not in related_project_ids:
+                related_project_ids.append(project_id)
+                
+                # 統合分析結果をコンテキストに追加
+                context_parts.append(
+                    f"=== 工程統合分析結果 ({project_id}) ===\\n"
+                    f"類似度: {similarity_score:.3f}\\n"
+                    f"総合ステータス: {metadata.get('overall_status', '不明')}\\n"
+                    f"総合リスク: {metadata.get('overall_risk', '不明')}\\n"
+                    f"現在工程: {metadata.get('current_phase', '不明')}\\n"
+                    f"進捗傾向: {metadata.get('progress_trend', '不明')}\\n"
+                    f"内容: {result.get('content', '')[:300]}...\\n"
+                )
+        
+        # 📄 Step 3: 関連工程の全報告書を取得
+        reports_by_project = _load_all_processed_reports()
+        
+        for project_id in related_project_ids[:3]:  # 上位3工程
+            if project_id in reports_by_project:
+                project_reports = reports_by_project[project_id]
+                context_parts.append(f"\\n=== 工程 {project_id} の関連報告書 ===")
+                
+                for i, report in enumerate(project_reports[:3]):  # 工程あたり上位3件
+                    context_parts.append(
+                        f"報告書{i+1}: {report.get('file_name', '不明')}\\n"
+                        f"要約: {report.get('analysis_result', {}).get('summary', '')}\\n"
+                        f"リスクレベル: {report.get('risk_level', '不明')}\\n"
+                        f"問題: {', '.join(report.get('analysis_result', {}).get('issues', []))}\\n"
+                    )
+        
+        # 🤖 Step 4: LLMに質問
+        context = "\\n".join(context_parts)
+        llm_service = get_llm_service()
+        answer = llm_service.answer_question(question, context)
+        
+        return answer
+        
+    except Exception as e:
+        return f"工程チェックの質問処理でエラーが発生しました: {str(e)}"
+
+def _load_all_processed_reports() -> Dict[str, List[Dict[str, Any]]]:
+    """処理済み報告書を工程ID別に読み込み"""
+    reports_by_project = {}
+    processed_dir = Path("data/processed_reports")
+    
+    if not processed_dir.exists():
+        return {}
+    
+    for report_file in processed_dir.glob("*.json"):
+        try:
+            with open(report_file, 'r', encoding='utf-8') as f:
+                report_data = json.load(f)
+            
+            project_id = report_data.get('project_id')
+            if project_id:
+                if project_id not in reports_by_project:
+                    reports_by_project[project_id] = []
+                reports_by_project[project_id].append(report_data)
+                
+        except Exception as e:
+            logger.warning(f"報告書読み込みエラー: {report_file.name} - {e}")
+    
+    return reports_by_project
+
+def _fallback_search(question: str, reports: List[DocumentReport], vector_store: VectorStoreService) -> str:
+    """フォールバック: 通常の報告書検索"""
+    try:
+        # 通常の報告書検索（統合分析結果以外）
+        search_results = vector_store.search_similar_documents(
+            query=question,
+            n_results=8
+        )
+        
+        # 統合分析結果を除外
+        filtered_results = [
+            result for result in search_results 
+            if result.get('metadata', {}).get('type') != 'context_analysis'
+        ]
+        
+        # まず閾値以上のものを探す
+        high_similarity_results = []
+        for result in filtered_results:
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
+            if similarity_score > 0.1:
+                high_similarity_results.append((result, similarity_score))
+        
+        # 閾値以上のものがない場合は上位3件を使用
+        if not high_similarity_results:
+            high_similarity_results = []
+            for result in filtered_results[:3]:  # 上位3件
+                distance = result.get('distance', 0.0)
+                similarity_score = 1.0 / (1.0 + distance / 100.0)
+                high_similarity_results.append((result, similarity_score))
+        
+        context_parts = []
+        for i, (result, similarity_score) in enumerate(high_similarity_results):
+            metadata = result.get('metadata', {})
+            content = result.get('content', '')
+            
+            context_parts.append(
+                f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
+                f"ファイル名: {metadata.get('file_name', '不明')}\\n"
+                f"レポート種別: {metadata.get('report_type', '不明')}\\n"
+                f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
+                f"内容: {content[:300]}...\\n"
+            )
+        
+        # 統合分析結果も追加（JSONファイルから）
+        context_analysis = load_context_analysis()
+        if context_analysis:
+            context_parts.append("\\n=== 案件統合分析結果 ===")
+            for project_id, analysis in list(context_analysis.items())[:3]:  # 上位3件
+                context_parts.append(
+                    f"案件ID: {project_id}\\n"
+                    f"総合ステータス: {analysis.get('overall_status', '不明')}\\n"
+                    f"総合リスク: {analysis.get('overall_risk', '不明')}\\n"
+                    f"分析サマリ: {analysis.get('analysis_summary', '')}\\n"
+                )
+        
+        context = "\\n".join(context_parts)
+        llm_service = get_llm_service()
+        return llm_service.answer_question(question, context)
+        
+    except Exception as e:
+        return f"フォールバック検索でもエラーが発生しました: {str(e)}"
 
 def process_qa_question_stream(question: str, reports: List[DocumentReport]):
     """質問応答を処理（ストリーミング対応・RAGシステム）"""
@@ -205,23 +435,68 @@ def process_qa_question_stream(question: str, reports: List[DocumentReport]):
         # 検索結果から高品質なコンテキストを構築
         context_parts = []
         
+        # まず閾値以上のものを探す
+        high_similarity_results = []
         if search_results:
-            for i, result in enumerate(search_results):
-                similarity_score = 1 - result.get('distance', 0.0)
-                if similarity_score > 0.3:  # 類似度閾値でフィルタリング
-                    metadata = result.get('metadata', {})
-                    content = result.get('content', '')
-                    
-                    context_parts.append(
-                        f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
-                        f"ファイル名: {metadata.get('file_name', '不明')}\\n"
-                        f"レポート種別: {metadata.get('report_type', '不明')}\\n"
-                        f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
-                        f"内容: {content[:300]}...\\n"
-                    )
+            for result in search_results:
+                distance = result.get('distance', 0.0)
+                similarity_score = 1.0 / (1.0 + distance / 100.0)
+                if similarity_score > 0.1:
+                    high_similarity_results.append((result, similarity_score))
+        
+        # 閾値以上のものがない場合は上位3件を使用
+        if not high_similarity_results and search_results:
+            for result in search_results[:3]:  # 上位3件
+                distance = result.get('distance', 0.0)
+                similarity_score = 1.0 / (1.0 + distance / 100.0)
+                high_similarity_results.append((result, similarity_score))
+        
+        for i, (result, similarity_score) in enumerate(high_similarity_results):
+            metadata = result.get('metadata', {})
+            content = result.get('content', '')
+            
+            context_parts.append(
+                f"関連文書{i+1} (類似度: {similarity_score:.3f}):\\n"
+                f"ファイル名: {metadata.get('file_name', '不明')}\\n"
+                f"レポート種別: {metadata.get('report_type', '不明')}\\n"
+                f"リスクレベル: {metadata.get('risk_level', '不明')}\\n"
+                f"内容: {content[:300]}...\\n"
+            )
+        
+        # 🆕 統合分析結果を追加
+        context_analysis = load_context_analysis()
+        if context_analysis:
+            context_parts.append("\\n=== 案件統合分析結果 ===")
+            for project_id, analysis in context_analysis.items():
+                context_parts.append(
+                    f"案件ID: {project_id}\\n"
+                    f"総合ステータス: {analysis.get('overall_status', '不明')}\\n"
+                    f"総合リスク: {analysis.get('overall_risk', '不明')}\\n"
+                    f"現在工程: {analysis.get('current_phase', '不明')}\\n"
+                    f"進捗傾向: {analysis.get('progress_trend', '不明')}\\n"
+                    f"問題継続性: {analysis.get('issue_continuity', '不明')}\\n"
+                    f"分析サマリ: {analysis.get('analysis_summary', '')}\\n"
+                )
+                
+                # 遅延理由管理情報
+                delay_reasons = analysis.get('delay_reasons_management', [])
+                if delay_reasons:
+                    context_parts.append(f"現在の遅延理由・問題:")
+                    for reason in delay_reasons[:3]:  # 上位3件
+                        context_parts.append(
+                            f"  - {reason.get('delay_category', '')}/{reason.get('delay_subcategory', '')}: "
+                            f"{reason.get('description', '')} (ステータス: {reason.get('status', '')})"
+                        )
+                
+                # 推奨アクション
+                actions = analysis.get('recommended_actions', [])
+                if actions:
+                    context_parts.append(f"推奨アクション: {', '.join(actions[:3])}")
+                
+                context_parts.append("---")
         
         # フォールバック: ベクター検索で結果が少ない場合は最新レポートも追加
-        if len(context_parts) < 3:
+        if len([p for p in context_parts if not p.startswith("=== 案件統合分析結果")]) < 3:
             for i, report in enumerate(reports[:5]):
                 if report.analysis_result:
                     context_parts.append(

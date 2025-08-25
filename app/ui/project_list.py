@@ -199,9 +199,9 @@ def apply_project_filters(projects: List[ProjectSummary]) -> List[ProjectSummary
     return filtered_projects
 
 def render_project_table(projects: List[ProjectSummary]):
-    """プロジェクト表を表示（カテゴリ別タブ）"""
+    """案件表を表示（カテゴリ別タブ）"""
     if not projects:
-        st.info("フィルター条件に合致するプロジェクトがありません。")
+        st.info("フィルター条件に合致する案件がありません。")
         return
     
     # ステータス・リスクレベル日本語化
@@ -218,16 +218,16 @@ def render_project_table(projects: List[ProjectSummary]):
         'low': '低'
     }
     
-    # タブで基本情報と工事詳細を分離
-    tab1, tab2 = st.tabs(["基本情報", "工事詳細状況"])
+    # タブで基本情報と建設工程を分離
+    tab1, tab2 = st.tabs(["基本情報", "建設工程状況"])
     
     with tab1:
         # 基本情報テーブル
         basic_data = []
         for project in projects:
             basic_data.append({
-                "プロジェクトID": project.project_id,
-                "プロジェクト名": project.project_name,
+                "案件ID": project.project_id,
+                "案件名": project.project_name,
                 "場所": project.location,
                 "現在フェーズ": project.current_phase,
                 "ステータス": status_labels.get(project.current_status.value, project.current_status.value) if project.current_status else '不明',
@@ -239,7 +239,7 @@ def render_project_table(projects: List[ProjectSummary]):
         
         basic_df = pd.DataFrame(basic_data)
         
-        # プロジェクト選択機能付きテーブル表示
+        # 案件選択機能付きテーブル表示
         selected_indices = st.dataframe(
             basic_df,
             use_container_width=True,
@@ -262,18 +262,18 @@ def render_project_table(projects: List[ProjectSummary]):
             }
         )
         
-        # 選択されたプロジェクトがある場合の詳細表示ボタン
+        # 選択された案件がある場合の詳細表示ボタン
         if selected_indices.selection.rows:
             selected_row = selected_indices.selection.rows[0]
             selected_project = projects[selected_row]
             
-            if st.button(f"📋 {selected_project.project_name} の詳細とレポート一覧を表示", key="view_project_details", use_container_width=True):
+            if st.button(f"📋 {selected_project.project_name} の詳細と報告書一覧を表示", key="view_project_details", use_container_width=True):
                 st.session_state.selected_project_id = selected_project.project_id
                 st.session_state.show_project_details = True
                 st.rerun()
     
     with tab2:
-        # 工事詳細状況テーブル
+        # 建設工程状況テーブル
         construction_data = []
         for project in projects:
             # 建設工程ステップの進捗状況を取得
@@ -330,7 +330,35 @@ def _get_construction_phases_status(project: ProjectSummary) -> Dict[str, str]:
     
     phase_status = {}
     
-    # 現在フェーズから7ステップの進捗状況を推定
+    # 🆕 統合分析結果のconstruction_phasesを優先使用
+    if hasattr(project, 'integration_analysis') and project.integration_analysis:
+        construction_phases = project.integration_analysis.get('construction_phases', {})
+        
+        # 統合分析結果から各フェーズの状況を取得
+        for phase in seven_steps:
+            if phase in construction_phases:
+                phase_info = construction_phases[phase]
+                if isinstance(phase_info, dict):
+                    status = phase_info.get('status', '未着手')
+                    # ステータスの正規化
+                    if status in ['完了', 'completed']:
+                        phase_status[phase] = "完了"
+                    elif status in ['実施中', 'in_progress', '進行中']:
+                        phase_status[phase] = "進行中"
+                    elif status in ['一時停止', 'suspended', '停止中']:
+                        phase_status[phase] = "停止中"
+                    elif status in ['再見積もり中', 'under_review']:
+                        phase_status[phase] = "再見積もり中"
+                    else:
+                        phase_status[phase] = "未着手"
+                else:
+                    phase_status[phase] = str(phase_info) if phase_info else "未着手"
+            else:
+                phase_status[phase] = "未着手"
+        
+        return phase_status
+    
+    # フォールバック: 従来のロジック（現在フェーズベース）
     current_phase = project.current_phase
     current_phase_index = -1
     
@@ -367,8 +395,8 @@ def _get_construction_phases_status(project: ProjectSummary) -> Dict[str, str]:
     return phase_status
 
 def _render_project_details(projects: List[ProjectSummary], project_id: str, reports: List[DocumentReport] = None):
-    """プロジェクト詳細とレポート一覧を表示"""
-    # 該当プロジェクトを検索
+    """案件詳細と報告書一覧を表示"""
+    # 該当案件を検索
     target_project = None
     for project in projects:
         if project.project_id == project_id:
@@ -376,16 +404,16 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
             break
     
     if not target_project:
-        st.error(f"プロジェクト {project_id} が見つかりません。")
+        st.error(f"案件 {project_id} が見つかりません。")
         return
     
     # ヘッダー表示
-    st.markdown(f"<div class='custom-header'>{target_project.project_name} - プロジェクト詳細</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='custom-header'>{target_project.project_name} - 案件詳細</div>", unsafe_allow_html=True)
     
-    # プロジェクト基本情報
+    # 案件基本情報
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"**プロジェクトID:** {target_project.project_id}")
+        st.markdown(f"**案件ID:** {target_project.project_id}")
         st.markdown(f"**場所:** {target_project.location}")
         st.markdown(f"**現在フェーズ:** {target_project.current_phase}")
     with col2:
@@ -407,17 +435,17 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
     
     st.divider()
     
-    # レポート一覧セクション
-    st.markdown("<div class='custom-header' style='font-size: 20px;'>このプロジェクトのレポート一覧</div>", unsafe_allow_html=True)
+    # 報告書一覧セクション
+    st.markdown("<div class='custom-header' style='font-size: 20px;'>この案件の報告書一覧</div>", unsafe_allow_html=True)
     
     if reports:
-        # プロジェクトに紐づくレポートをフィルタリング
+        # 案件に紐づく報告書をフィルタリング
         project_reports = [r for r in reports if r.project_id == project_id]
         
         if project_reports:
-            st.markdown(f"**該当レポート数:** {len(project_reports)}件")
+            st.markdown(f"**該当報告書数:** {len(project_reports)}件")
             
-            # レポート一覧をテーブル形式で表示
+            # 報告書一覧をテーブル形式で表示
             report_data = []
             for report in sorted(project_reports, key=lambda x: x.created_at, reverse=True):
                 # ステータス表示
@@ -443,7 +471,7 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
                 
                 report_data.append({
                     "ファイル名": report.file_name,
-                    "レポート種別": report.report_type.value,
+                    "報告書種別": report.report_type.value,
                     "ステータス": status_text,
                     "リスクレベル": risk_text,
                     "要約": summary,
@@ -453,10 +481,10 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
             report_df = pd.DataFrame(report_data)
             st.dataframe(report_df, use_container_width=True, hide_index=True)
             
-            # レポート詳細表示
+            # 報告書詳細表示
             st.markdown("---")
             selected_report_idx = st.selectbox(
-                "詳細を表示するレポートを選択:",
+                "詳細を表示する報告書を選択:",
                 range(len(project_reports)),
                 format_func=lambda x: f"{project_reports[x].file_name} ({project_reports[x].created_at.strftime('%Y-%m-%d')})"
             )
@@ -467,7 +495,7 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f"**レポート種別:** {selected_report.report_type.value}")
+                    st.markdown(f"**報告書種別:** {selected_report.report_type.value}")
                     st.markdown(f"**作成日時:** {selected_report.created_at.strftime('%Y-%m-%d %H:%M')}")
                     status_text = status_labels.get(selected_report.status_flag.value, "不明") if selected_report.status_flag else "不明"
                     st.markdown(f"**ステータス:** {status_text}")
@@ -486,9 +514,14 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
                     if selected_report.analysis_result.key_points:
                         st.markdown(f"**重要ポイント:** {', '.join(selected_report.analysis_result.key_points)}")
         else:
-            st.info(f"プロジェクト {project_id} に紐づくレポートが見つかりません。")
+            st.info(f"案件 {project_id} に紐づく報告書が見つかりません。")
     else:
-        st.warning("レポートデータが提供されていません。")
+        st.warning("報告書データが提供されていません。")
+    
+    # 遅延理由・問題分析（統合分析結果から）
+    if hasattr(target_project, 'integration_analysis') and target_project.integration_analysis:
+        st.markdown("<div class='custom-header' style='font-size: 20px;'>遅延理由・問題分析</div>", unsafe_allow_html=True)
+        _render_delay_reasons_analysis(target_project.integration_analysis)
     
     # 工事進捗状況
     st.markdown("<div class='custom-header' style='font-size: 20px;'>工事進捗状況</div>", unsafe_allow_html=True)
@@ -505,3 +538,146 @@ def _render_project_details(projects: List[ProjectSummary], project_id: str, rep
     
     progress_df = pd.DataFrame(progress_data)
     st.dataframe(progress_df, use_container_width=True, hide_index=True)
+
+def _render_delay_reasons_analysis(integration_analysis: Dict[str, Any]):
+    """遅延理由・問題分析の表示"""
+    delay_reasons = integration_analysis.get('delay_reasons_management', [])
+    
+    if not delay_reasons:
+        st.info("現在、特定された遅延理由・問題はありません。")
+        return
+    
+    st.markdown(f"**検出された問題・遅延理由:** {len(delay_reasons)}件")
+    
+    # 遅延理由をステータス別に分類
+    active_issues = []
+    resolved_issues = []
+    new_issues = []
+    
+    for reason in delay_reasons:
+        status = reason.get('status', '不明')
+        if status == '継続中':
+            active_issues.append(reason)
+        elif status == '解決済み':
+            resolved_issues.append(reason)
+        elif status == '新規発生':
+            new_issues.append(reason)
+        else:
+            active_issues.append(reason)  # デフォルトは継続中として扱う
+    
+    # タブで分類表示
+    if new_issues or active_issues or resolved_issues:
+        tabs = []
+        tab_names = []
+        
+        if new_issues:
+            tab_names.append(f"🆕 新規発生 ({len(new_issues)})")
+            tabs.append(new_issues)
+        
+        if active_issues:
+            tab_names.append(f"🔄 継続中 ({len(active_issues)})")
+            tabs.append(active_issues)
+        
+        if resolved_issues:
+            tab_names.append(f"✅ 解決済み ({len(resolved_issues)})")
+            tabs.append(resolved_issues)
+        
+        if len(tab_names) == 1:
+            # タブが1つの場合は直接表示
+            _render_delay_reasons_table(tabs[0])
+        else:
+            # 複数タブの場合はタブ表示
+            tab_objects = st.tabs(tab_names)
+            for i, (tab_obj, issues) in enumerate(zip(tab_objects, tabs)):
+                with tab_obj:
+                    _render_delay_reasons_table(issues)
+    
+    # 統合分析サマリー
+    analysis_summary = integration_analysis.get('analysis_summary', '')
+    if analysis_summary:
+        st.markdown("### 📊 統合分析サマリー")
+        st.markdown(analysis_summary)
+    
+    # 推奨アクション
+    recommended_actions = integration_analysis.get('recommended_actions', [])
+    if recommended_actions:
+        st.markdown("### 💡 推奨対応アクション")
+        for i, action in enumerate(recommended_actions, 1):
+            st.markdown(f"{i}. {action}")
+
+def _render_delay_reasons_table(delay_reasons: List[Dict[str, Any]]):
+    """遅延理由テーブルの表示"""
+    if not delay_reasons:
+        st.info("該当する問題・遅延理由はありません。")
+        return
+    
+    # テーブルデータの準備
+    table_data = []
+    for reason in delay_reasons:
+        # 信頼度を百分率で表示
+        confidence = reason.get('confidence', 0.0)
+        confidence_pct = f"{confidence * 100:.1f}%" if isinstance(confidence, (int, float)) else "不明"
+        
+        # 日付フォーマット
+        first_reported = reason.get('first_reported', '不明')
+        last_updated = reason.get('last_updated', '不明')
+        
+        table_data.append({
+            "カテゴリ": reason.get('delay_category', '不明'),
+            "詳細分類": reason.get('delay_subcategory', '不明'),
+            "問題内容": reason.get('description', '詳細不明'),
+            "ステータス": reason.get('status', '不明'),
+            "現在の対応": reason.get('current_response', '対応策未定'),
+            "信頼度": confidence_pct,
+            "初回報告": first_reported,
+            "最終更新": last_updated
+        })
+    
+    # DataFrame作成と表示
+    df = pd.DataFrame(table_data)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            'カテゴリ': st.column_config.TextColumn('カテゴリ', width='medium'),
+            '詳細分類': st.column_config.TextColumn('詳細分類', width='medium'),
+            '問題内容': st.column_config.TextColumn('問題内容', width='large'),
+            'ステータス': st.column_config.TextColumn('ステータス', width='small'),
+            '現在の対応': st.column_config.TextColumn('現在の対応', width='large'),
+            '信頼度': st.column_config.TextColumn('信頼度', width='small'),
+            '初回報告': st.column_config.TextColumn('初回報告', width='medium'),
+            '最終更新': st.column_config.TextColumn('最終更新', width='medium')
+        }
+    )
+    
+    # 詳細表示用の選択機能
+    if len(delay_reasons) > 0:
+        st.markdown("---")
+        selected_idx = st.selectbox(
+            "詳細を表示する問題を選択:",
+            range(len(delay_reasons)),
+            format_func=lambda x: f"{delay_reasons[x].get('delay_category', '不明')} - {delay_reasons[x].get('delay_subcategory', '不明')}",
+            key=f"delay_reason_select_{id(delay_reasons)}"
+        )
+        
+        if selected_idx is not None:
+            selected_reason = delay_reasons[selected_idx]
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"**カテゴリ:** {selected_reason.get('delay_category', '不明')}")
+                st.markdown(f"**詳細分類:** {selected_reason.get('delay_subcategory', '不明')}")
+                st.markdown(f"**ステータス:** {selected_reason.get('status', '不明')}")
+                st.markdown(f"**信頼度:** {selected_reason.get('confidence', 0.0) * 100:.1f}%")
+            
+            with col2:
+                st.markdown(f"**初回報告日:** {selected_reason.get('first_reported', '不明')}")
+                st.markdown(f"**最終更新日:** {selected_reason.get('last_updated', '不明')}")
+            
+            st.markdown(f"**問題詳細:** {selected_reason.get('description', '詳細不明')}")
+            st.markdown(f"**現在の対応策:** {selected_reason.get('current_response', '対応策未定')}")
+            
+            evidence = selected_reason.get('evidence', '')
+            if evidence:
+                st.markdown(f"**判定根拠:** {evidence}")

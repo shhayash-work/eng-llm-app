@@ -76,7 +76,7 @@ class DocumentReport:
     file_name: str
     report_type: ReportType
     content: str
-    created_at: datetime
+    created_at: datetime                            # 元報告書ファイルの更新時間（時系列分析の基準）
     project_id: Optional[str] = None               # プロジェクトID（LLMで抽出）
     analysis_result: Optional[AnalysisResult] = None
     anomaly_detection: Optional[AnomalyDetection] = None
@@ -86,9 +86,8 @@ class DocumentReport:
     # category_labels削除: 15カテゴリ遅延理由体系に統一
     risk_level: Optional[RiskLevel] = None
     construction_status: Optional[ConstructionStatus] = None
-    # 建設工程情報（LLMで抽出）
-    current_construction_phase: Optional[str] = None    # 現在の建設工程フェーズ
-    construction_progress: Optional[Dict[str, str]] = None  # 各工程の進捗状況
+    # 🆕 報告書タイプから建設工程関連性（ルールベース）
+    report_type_phase_mapping: Optional[Dict[str, Any]] = None  # 報告書タイプマッピング情報
     
     # 🚨 データ品質監視フィールド
     has_unexpected_values: bool = False            # 想定外値の存在フラグ
@@ -99,6 +98,11 @@ class DocumentReport:
     analysis_confidence: float = 0.0              # LLMによる分析の確実性（0.0-1.0）
     # analysis_notes削除: summaryに統合
     
+    # 🆕 詳細信頼度・根拠情報
+    analysis_metadata: Optional[Dict[str, Any]] = None  # 分析全体のメタデータ
+    confidence_details: Optional[Dict[str, Any]] = None  # 項目別信頼度詳細
+    evidence_details: Optional[Dict[str, Any]] = None    # 項目別根拠詳細
+    
     # 📋 プロジェクトマッピング詳細情報
     project_mapping_info: Optional[Dict[str, Any]] = None  # マッピング詳細（信頼度、手法等）
     
@@ -107,6 +111,10 @@ class DocumentReport:
     
     # 🎯 緊急度スコア（将来の遅延可能性）
     urgency_score: int = 1  # 1-10スケール
+    
+    # 🔍 人的確認フラグ（報告書品質監視用）
+    requires_content_review: bool = False      # 報告書内容確認が必要
+    requires_mapping_review: bool = False      # 案件との紐づけ確認が必要
     
     # current_status削除: status_flagで統一
     

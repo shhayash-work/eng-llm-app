@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 # アプリケーション基本設定
-APP_TITLE = "建設管理アプリ"
+APP_TITLE = "建設報告監査システム"
 APP_DESCRIPTION = "建設工程異常検知・分析システム"
 VERSION = "1.0.0"
 

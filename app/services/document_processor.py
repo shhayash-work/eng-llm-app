@@ -232,7 +232,47 @@ class DocumentProcessor:
         # 🤖 統合分析結果を設定
         report.requires_human_review = llm_result.get('requires_human_review', False)
         report.analysis_confidence = llm_result.get('analysis_confidence', 0.0)
-        report.analysis_notes = llm_result.get('analysis_notes', '')
+        
+        # 🆕 詳細信頼度・根拠情報を設定
+        report.analysis_metadata = llm_result.get('analysis_metadata', {})
+        
+        # 項目別信頼度詳細を収集
+        confidence_details = {}
+        evidence_details = {}
+        
+        # レポートタイプの信頼度・根拠
+        confidence_details['report_type'] = llm_result.get('report_type_confidence', 0.0)
+        evidence_details['report_type'] = llm_result.get('report_type_evidence', '')
+        
+        # プロジェクト情報の信頼度・根拠
+        project_info = llm_result.get('project_info', {})
+        for field in ['project_id', 'station_name', 'station_number', 'aurora_plan', 'location', 'responsible_person']:
+            confidence_key = f'{field}_confidence'
+            evidence_key = f'{field}_evidence'
+            if confidence_key in project_info:
+                confidence_details[field] = project_info[confidence_key]
+            if evidence_key in project_info:
+                evidence_details[field] = project_info[evidence_key]
+        
+        # ステータス・工程の信頼度・根拠
+        confidence_details['status_flag'] = llm_result.get('status_flag_confidence', 0.0)
+        evidence_details['status_flag'] = llm_result.get('status_flag_evidence', '')
+        confidence_details['construction_phase'] = llm_result.get('construction_phase_confidence', 0.0)
+        evidence_details['construction_phase'] = llm_result.get('construction_phase_evidence', '')
+        
+        # 緊急度スコアの信頼度・根拠
+        confidence_details['urgency_score'] = llm_result.get('urgency_score_confidence', 0.0)
+        evidence_details['urgency_score'] = llm_result.get('urgency_score_evidence', '')
+        
+        # 遅延理由の信頼度・根拠
+        delay_reasons = llm_result.get('delay_reasons', [])
+        if delay_reasons:
+            for i, reason in enumerate(delay_reasons):
+                confidence_details[f'delay_reason_{i}'] = reason.get('confidence', 0.0)
+                evidence_details[f'delay_reason_{i}'] = reason.get('evidence', '')
+        
+        report.confidence_details = confidence_details
+        report.evidence_details = evidence_details
         
         # 🎯 プロジェクトマッピング（直接ID + ベクター検索）
         self._apply_project_mapping(report, llm_result)
@@ -259,12 +299,31 @@ class DocumentProcessor:
         report.urgency_score = urgency_score
         report.risk_level = calculate_risk_level_enum(urgency_score)
         
-        # 🔍 建設工程情報の設定
-        report.current_construction_phase = llm_result.get('construction_phase', '不明')
-        report.construction_progress = llm_result.get('construction_progress', {})
+        # 🆕 報告書タイプから建設工程関連性をルールベース出力
+        from app.services.report_type_mapper import ReportTypeMapper
+        
+        phase_mapping = ReportTypeMapper.get_phase_analysis_for_report(report_type)
+        report_type_phase_mapping = llm_result.get('report_type_phase_mapping', phase_mapping.get('report_type_phase_mapping', {}))
+        
+        # ルールベースの期待工程と実際の出力を統合
+        expected_phase = ReportTypeMapper.get_expected_phase_from_report_type(report_type)
+        if report_type_phase_mapping.get('expected_primary_phase') == '不明' and expected_phase != '不明':
+            report_type_phase_mapping['expected_primary_phase'] = expected_phase
+            report_type_phase_mapping['mapping_confidence'] = ReportTypeMapper.get_phase_mapping(report_type).get('confidence', 0.0)
+            report_type_phase_mapping['mapping_description'] = ReportTypeMapper.get_phase_mapping(report_type).get('description', '')
+        
+        # 報告書タイプマッピング情報を保存（統合分析用）
+        report.report_type_phase_mapping = report_type_phase_mapping
+        
+        # 信頼度・根拠詳細に追加
+        confidence_details['report_type_phase_mapping'] = report_type_phase_mapping.get('mapping_confidence', 0.0)
+        evidence_details['report_type_phase_mapping'] = report_type_phase_mapping.get('mapping_description', '')
         
         # 🚧 遅延理由情報の設定（15カテゴリ体系）
         report.delay_reasons = llm_result.get('delay_reasons', [])
+        
+        # 🆕 LLMの抽出結果を保存（デバッグ・検証用）
+        report.llm_extraction_result = llm_result.get('project_info', {})
         
         # current_status処理削除: status_flagで統一
         
@@ -286,7 +345,91 @@ class DocumentProcessor:
             similar_cases=[]
         )
         
+        # 🔍 人的確認フラグの設定
+        self._set_review_flags(report, llm_result)
+        
         return report
+    
+    def _set_review_flags(self, report: DocumentReport, llm_result: Dict[str, Any]):
+        """人的確認フラグを設定"""
+        # 報告書内容確認が必要な条件
+        content_review_needed = False
+        
+        # 1. 遅延理由が15カテゴリに分類されない（重大問題）
+        delay_reasons = llm_result.get('delay_reasons', [])
+        for delay_reason in delay_reasons:
+            if delay_reason.get('category') == '重大問題（要人的確認）':
+                content_review_needed = True
+                break
+        
+        # 2. 必須項目が取得できなかった
+        missing_required_fields = self._check_required_fields(report, llm_result)
+        if missing_required_fields:
+            content_review_needed = True
+            # validation_issuesに追加
+            for field in missing_required_fields:
+                if f"必須項目不足: {field}" not in report.validation_issues:
+                    report.validation_issues.append(f"必須項目不足: {field}")
+        
+        # 既存のvalidation_issuesもチェック
+        if report.validation_issues:
+            content_review_needed = True
+        
+        # 3. LLMが分析困難と判定
+        if report.requires_human_review:
+            content_review_needed = True
+        
+        # 4. 分析信頼度が低い
+        if report.analysis_confidence < 0.7:
+            content_review_needed = True
+        
+        report.requires_content_review = content_review_needed
+        
+        # 案件との紐づけ確認が必要な条件
+        mapping_review_needed = False
+        
+        # プロジェクトマッピングが失敗または低信頼度
+        if hasattr(report, 'project_mapping_info') and report.project_mapping_info:
+            method = report.project_mapping_info.get('matching_method', 'unknown')
+            if method == 'vector_search':
+                # ベクター検索の場合は信頼度に関わらず確認が必要
+                mapping_review_needed = True
+            elif method in ['mapping_failed', 'vector_search_unavailable']:
+                mapping_review_needed = True
+        
+        report.requires_mapping_review = mapping_review_needed
+    
+    def _check_required_fields(self, report: DocumentReport, llm_result: Dict[str, Any]) -> List[str]:
+        """必須項目をチェックして不足している項目を返す"""
+        missing_fields = []
+        
+        # プロジェクト情報から取得
+        project_info = llm_result.get('project_info', {})
+        
+        # 必須項目の定義（担当者名と基地局番号は除外）
+        required_fields = {
+            'プロジェクトID': report.project_id,
+            'auRoraプラン名': project_info.get('aurora_plan'),
+            '基地局名': project_info.get('station_name'),
+            '住所': project_info.get('location'),
+            '報告書タイプ': report.report_type,
+            'ステータス': report.status_flag,
+            'リスクレベル': report.risk_level,
+            '緊急度スコア': getattr(report, 'urgency_score', None)
+        }
+        
+        # 各項目をチェック
+        for field_name, value in required_fields.items():
+            if value is None or value == '不明' or value == '':
+                missing_fields.append(field_name)
+        
+        # 遅延理由は遅延が発生している場合のみ必須
+        if report.status_flag and report.status_flag.value in ['minor_delay', 'major_delay', 'stopped']:
+            delay_reasons = getattr(report, 'delay_reasons', [])
+            if not delay_reasons:
+                missing_fields.append('遅延理由')
+        
+        return missing_fields
     
     def _add_to_vector_store(self, report: DocumentReport) -> bool:
         """ベクターストアに文書を追加"""
@@ -302,19 +445,35 @@ class DocumentProcessor:
         return self.vector_store.add_document(report.content, metadata)
     
     def _apply_project_mapping(self, report: DocumentReport, llm_result: Dict[str, Any]):
-        """プロジェクトマッピングを適用（直接ID + ベクター検索）"""
+        """プロジェクトマッピングを適用（条件付きベクター検索）"""
         try:
+            # 🚀 1. LLM直接ID抽出を最優先で試行
+            project_info = llm_result.get('project_info', {})
+            direct_project_id = project_info.get('project_id')
+            
+            if direct_project_id and direct_project_id != '不明':
+                # LLMから直接IDが取得できた場合はベクター検索をスキップ
+                report.project_id = direct_project_id
+                report.project_mapping_info = {
+                    'confidence_score': project_info.get('project_id_confidence', 0.8),
+                    'matching_method': 'llm_direct',
+                    'alternative_candidates': [],
+                    'extracted_info': {'llm_id': direct_project_id, 'llm_confidence': project_info.get('project_id_confidence', 0.8)}
+                }
+                logger.info(f"LLM direct project_id mapping: {direct_project_id} for {report.file_name}")
+                return
+            
+            # 🔍 2. 直接IDが取得できない場合のみベクター検索
+            logger.info(f"Direct ID not found, using vector search for {report.file_name}")
             from app.services.project_mapper import ProjectMapper
             
-            # 🎯 マルチ戦略プロジェクトマッピング
             project_mapper = ProjectMapper()
             mapping_result = project_mapper.map_project(report.content, llm_result)
             
             if mapping_result.project_id:
                 report.project_id = mapping_result.project_id
-                logger.info(f"Mapped project_id: {mapping_result.project_id} "
-                          f"(confidence: {mapping_result.confidence_score:.2f}, "
-                          f"method: {mapping_result.matching_method}) for {report.file_name}")
+                logger.info(f"Vector search project_id: {mapping_result.project_id} "
+                          f"(confidence: {mapping_result.confidence_score:.2f}) for {report.file_name}")
                 
                 # マッピング詳細情報を保存
                 report.project_mapping_info = {
@@ -340,4 +499,6 @@ class DocumentProcessor:
             report.project_id = None
             report.has_unexpected_values = True
             report.validation_issues.append(f"プロジェクトマッピングエラー: {str(e)}")
+    
+
     

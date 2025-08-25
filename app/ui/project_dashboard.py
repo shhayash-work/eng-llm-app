@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.services.project_aggregator import ProjectSummary
 from app.models.report import DocumentReport
@@ -37,57 +37,109 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
         st.warning("進行中のプロジェクトがありません。")
         return
     
-    # ダッシュボードメトリクス計算
+    # ダッシュボードメトリクス計算（報告書がない案件も含む）
     from app.services.project_aggregator import ProjectAggregator
     aggregator = ProjectAggregator()
-    metrics = aggregator.get_dashboard_metrics(active_projects)
+    
+    # 全案件数を取得（報告書がない案件も含む）
+    all_master_projects = _load_all_master_projects()
+    actual_total_all_projects = len(all_master_projects)
+    
+    # 実際のメトリクス計算
+    actual_metrics = aggregator.get_dashboard_metrics(active_projects)
+    actual_metrics['total_projects'] = actual_total_all_projects
+    
+    # ダミー数値を適用（停止・遅延は実際の値を使用）
+    from app.config.dummy_data import get_project_audit_metrics
+    actual_project_metrics = {
+        "total_projects": actual_total_all_projects,
+        "active_projects": len(active_projects),
+        "completed_projects": len(projects) - len(active_projects),
+        "normal_projects": 0,  # ダミーで上書きされる
+        "minor_delay_projects": 0,  # 実際の値を使用するため0に設定
+        "major_delay_projects": 0,  # 実際の値を使用するため0に設定
+        "stopped_projects": 0,  # 実際の値を使用するため0に設定
+        "high_risk_projects": actual_metrics.get('high_risk_count', 0),
+        "medium_risk_projects": actual_metrics.get('medium_risk_count', 0),
+        "low_risk_projects": actual_metrics.get('low_risk_count', 0),
+        "urgent_projects": actual_metrics.get('urgent_count', 0),
+    }
+    
+    dummy_metrics = get_project_audit_metrics(actual_project_metrics)
+    
+    # 表示用メトリクスを設定（停止・遅延は実際の値を使用）
+    metrics = {
+        'total_projects': dummy_metrics['total_projects'],
+        'stopped_count': actual_metrics['stopped_count'],  # 実際の値
+        'major_delay_count': actual_metrics['major_delay_count'],  # 実際の値
+        'minor_delay_count': actual_metrics['minor_delay_count'],  # 実際の値
+        'normal_count': dummy_metrics['normal_projects'],
+    }
+    
+    # 分数表示も更新
+    metrics['stopped_fraction'] = f"{metrics['stopped_count']}/{metrics['total_projects']}"
+    metrics['major_delay_fraction'] = f"{metrics['major_delay_count']}/{metrics['total_projects']}"
+    metrics['minor_delay_fraction'] = f"{metrics['minor_delay_count']}/{metrics['total_projects']}"
+    metrics['normal_fraction'] = f"{metrics['normal_count']}/{metrics['total_projects']}"
+    
+    # パーセンテージも更新
+    if metrics['total_projects'] > 0:
+        metrics['stopped_percentage'] = (metrics['stopped_count'] / metrics['total_projects']) * 100
+        metrics['major_delay_percentage'] = (metrics['major_delay_count'] / metrics['total_projects']) * 100
+        metrics['minor_delay_percentage'] = (metrics['minor_delay_count'] / metrics['total_projects']) * 100
+        metrics['normal_percentage'] = (metrics['normal_count'] / metrics['total_projects']) * 100
+    
     status_groups = aggregator.get_projects_by_status(active_projects)
+    
+    # 工程統計セクション
+    st.markdown("<div class='custom-header'>工程統計</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>全工程の進捗状況と各ステータス別の工程数を表示</p>", unsafe_allow_html=True)
     
     # メトリクス表示
     _render_project_metrics(metrics)
     
-    # 要緊急対応案件アラート表示
-    st.markdown("<div class='custom-header'>要緊急対応案件</div>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>緊急停止・長期未報告・高リスク案件など、現場確認と迅速な対応が必要な案件を表示</p>", unsafe_allow_html=True)
+    # 要対応工程アラート表示
+    st.markdown("<div class='custom-header'>要対応工程</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>緊急停止・長期未報告・高リスク工程など、現場確認と迅速な対応が必要な工程を表示</p>", unsafe_allow_html=True)
     _render_urgent_response_alerts(active_projects, reports)
     
-    # 案件状況一覧
-    st.markdown("<div class='custom-header'>案件状況一覧</div>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>ステータス別（最新報告・停止・重大な遅延・軽微な遅延・順調）に案件を分類し、緊急度順で表示</p>", unsafe_allow_html=True)
+    # 工程状況一覧
+    st.markdown("<div class='custom-header'>工程状況一覧</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>ステータス別（最新報告・停止・重大な遅延・軽微な遅延・順調）に工程を分類し、緊急度順で表示</p>", unsafe_allow_html=True)
     
     # 重要度順タブ表示
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["最新報告", "停止", "重大な遅延", "軽微な遅延", "順調"])
     
     with tab1:
-        # 最新報告案件（最新報告日順で上位5件）
+        # 最新報告工程（最新報告日順で上位5件）
         latest_projects = sorted(active_projects, key=lambda p: p.latest_report_date or datetime.min, reverse=True)[:5]
         _render_project_list_section(latest_projects, "最新報告", show_more_link=len(active_projects) > 5, reports=reports)
     
     with tab2:
-        # 停止案件（緊急度上位5件）
+        # 停止工程（緊急度上位5件）
         stopped_projects = [p for p in active_projects if p.current_status and p.current_status.value == 'stopped']
         stopped_projects = sorted(stopped_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
         _render_project_list_section(stopped_projects, "停止", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value == 'stopped']) > 5, reports=reports)
     
     with tab3:
-        # 重大な遅延案件（緊急度上位5件）
+        # 重大な遅延工程（緊急度上位5件）
         major_delay_projects = [p for p in active_projects if p.current_status and p.current_status.value == 'major_delay']
         major_delay_projects = sorted(major_delay_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
         _render_project_list_section(major_delay_projects, "重大な遅延", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value == 'major_delay']) > 5, reports=reports)
     
     with tab4:
-        # 軽微な遅延案件（緊急度上位5件）
+        # 軽微な遅延工程（緊急度上位5件）
         minor_delay_projects = [p for p in active_projects if p.current_status and p.current_status.value == 'minor_delay']
         minor_delay_projects = sorted(minor_delay_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
         _render_project_list_section(minor_delay_projects, "軽微な遅延", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value == 'minor_delay']) > 5, reports=reports)
     
     with tab5:
-        # 順調案件（緊急度上位5件）
+        # 順調工程（緊急度上位5件）
         normal_projects = [p for p in active_projects if p.current_status and p.current_status.value == 'normal']
         normal_projects = sorted(normal_projects, key=lambda p: _get_urgency_score(p), reverse=True)[:5]
         _render_project_list_section(normal_projects, "順調", show_more_link=len([p for p in active_projects if p.current_status and p.current_status.value == 'normal']) > 5, reports=reports)
     
-    # 案件分析チャート（個別のタイトルで表示）
+    # 工程分析チャート（個別のタイトルで表示）
     col1, col2 = st.columns(2)
     
     with col1:
@@ -97,8 +149,8 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
         _render_risk_distribution_chart(active_projects)
     
     # 完了予定タイムライン（下部に移動）
-    st.markdown("<div class='custom-header'>案件完了予定タイムライン</div>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>月別の案件完了予定と進捗状況（完了済み・工事中・未着手）の推移を表示</p>", unsafe_allow_html=True)
+    st.markdown("<div class='custom-header'>工程完了予定タイムライン</div>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>月別の工程完了予定と進捗状況（完了済み・工事中・未着手）の推移を表示</p>", unsafe_allow_html=True)
     _render_timeline_chart(active_projects)
 
 def _render_project_metrics(metrics: Dict[str, Any]):
@@ -145,7 +197,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         color = "#FF6B35" if metrics['stopped_count'] > 0 else "#28a745"
         st.markdown(f"""
         <div class='metric-card-updated'>
-            <h3>停止案件数</h3>
+            <h3>停止</h3>
             <h2 style='color: {color};'>{metrics['stopped_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
             <p>{metrics['stopped_percentage']:.1f}%</p>
         </div>
@@ -155,7 +207,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         color = "#FF6B35" if metrics['major_delay_count'] > 0 else "#28a745"
         st.markdown(f"""
         <div class='metric-card-updated'>
-            <h3>重大な遅延案件数</h3>
+            <h3>重大な遅延</h3>
             <h2 style='color: {color};'>{metrics['major_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
             <p>{metrics['major_delay_percentage']:.1f}%</p>
         </div>
@@ -165,7 +217,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         color = "#FFA500" if metrics['minor_delay_count'] > 0 else "#28a745"
         st.markdown(f"""
         <div class='metric-card-updated'>
-            <h3>軽微な遅延案件数</h3>
+            <h3>軽微な遅延</h3>
             <h2 style='color: {color};'>{metrics['minor_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
             <p>{metrics['minor_delay_percentage']:.1f}%</p>
         </div>
@@ -174,7 +226,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
     with col4:
         st.markdown(f"""
         <div class='metric-card-updated'>
-            <h3>順調案件数</h3>
+            <h3>順調</h3>
             <h2 style='color: #28a745;'>{metrics['normal_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
             <p>{metrics['normal_percentage']:.1f}%</p>
         </div>
@@ -212,7 +264,25 @@ def _render_project_card(project: ProjectSummary, section_name: str = "default",
     status_text = status_labels.get(project.current_status.value, project.current_status.value) if project.current_status else '不明'
     
     # リスクレベル表示用（ステータスと重複しないように簡略化）
-    risk_text = project.risk_level.value if project.risk_level else '不明'
+    risk_labels = {
+        'high': '高',
+        'medium': '中',
+        'low': '低',
+        'HIGH': '高',
+        'MEDIUM': '中',
+        'LOW': '低'
+    }
+    
+    raw_risk = project.risk_level
+    if raw_risk:
+        if hasattr(raw_risk, 'value'):
+            risk_value = raw_risk.value
+        else:
+            risk_value = str(raw_risk)
+        risk_text = risk_labels.get(risk_value, risk_value)
+    else:
+        risk_text = '不明'
+    
     risk_colors = {
         '高': '#dc3545',
         '中': '#ffc107', 
@@ -276,7 +346,10 @@ def _render_all_projects_table(projects: List[ProjectSummary], show_more_link: b
     risk_labels = {
         'high': '高',
         'medium': '中',
-        'low': '低'
+        'low': '低',
+        'HIGH': '高',
+        'MEDIUM': '中',
+        'LOW': '低'
     }
     
     # プロジェクト一覧を展開可能形式で表示
@@ -284,7 +357,17 @@ def _render_all_projects_table(projects: List[ProjectSummary], show_more_link: b
         # ステータス色の決定
         status_color = _get_status_color(project.current_status)
         status_text = status_labels.get(project.current_status.value, project.current_status.value) if project.current_status else '不明'
-        risk_text = risk_labels.get(project.risk_level.value, project.risk_level.value) if project.risk_level else '不明'
+        
+        # リスクレベルの安全な取得と変換
+        raw_risk = project.risk_level
+        if raw_risk:
+            if hasattr(raw_risk, 'value'):
+                risk_value = raw_risk.value
+            else:
+                risk_value = str(raw_risk)
+            risk_text = risk_labels.get(risk_value, risk_value)
+        else:
+            risk_text = '不明'
         
         # 展開可能なプロジェクト行
         with st.expander(f"{project.project_name} ({status_text})", expanded=False):
@@ -522,7 +605,18 @@ def _render_latest_report_analysis(project: ProjectSummary, reports: List = None
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"**レポート種別:** {latest_report.report_type.value}")
+        # レポート種別の日本語変換
+        type_mapping = {
+            "CONSTRUCTION_REPORT": "建設報告書",
+            "TROUBLE_REPORT": "トラブル報告書", 
+            "PROGRESS_UPDATE": "進捗報告書",
+            "CONSTRUCTION_ESTIMATE": "工事見積書",
+            "NEGOTIATION_PROGRESS": "交渉経緯報告書",
+            "STRUCTURAL_DESIGN": "構造設計書",
+            "OTHER": "その他"
+        }
+        report_type_jp = type_mapping.get(latest_report.report_type.value, latest_report.report_type.value)
+        st.markdown(f"**レポート種別:** {report_type_jp}")
         st.markdown(f"**作成日時:** {latest_report.created_at.strftime('%Y-%m-%d %H:%M')}")
         status_text = status_labels.get(latest_report.status_flag.value, "不明") if latest_report.status_flag else "不明"
         st.markdown(f"**ステータス:** {status_text}")
@@ -679,6 +773,24 @@ def _render_urgent_response_alerts(projects: List[ProjectSummary], reports: List
     """要緊急対応案件アラート表示（使用者目線で本当に確認すべき案件）"""
     urgent_projects = []
     
+    # 🆕 プロジェクトマスターデータから報告書がない案件も検出
+    all_master_projects = _load_all_master_projects()
+    existing_project_ids = {p.project_id for p in projects}
+    
+    
+    # 報告書がない案件を検出（total_reports=0のプロジェクトも含む）
+    for master_project in all_master_projects:
+        project_id = master_project['project_id']
+        
+        # 既存プロジェクトで報告書数が0の場合も報告書がない案件として扱う
+        existing_project = next((p for p in projects if p.project_id == project_id), None)
+        
+        if existing_project is None or existing_project.total_reports == 0:
+            # 報告書がない案件を疑似ProjectSummaryとして作成
+            no_report_project = _create_no_report_project_summary(master_project)
+            urgent_projects.append(no_report_project)
+    
+    # 既存の案件チェック
     for project in projects:
         is_urgent = False
         urgent_reasons = []
@@ -735,7 +847,9 @@ def _render_urgent_response_alerts(projects: List[ProjectSummary], reports: List
         # 緊急度順でソート（停止 > 長期未報告 > 重大遅延+高リスク > その他）
         def get_urgency_priority(project):
             reasons = getattr(project, 'urgent_reasons', [])
-            if any('緊急停止' in reason for reason in reasons):
+            if any('報告書が見当たらず' in reason for reason in reasons):
+                return 5  # 最高優先度
+            elif any('緊急停止' in reason for reason in reasons):
                 return 4
             elif any('長期未報告' in reason for reason in reasons):
                 return 3
@@ -763,9 +877,9 @@ def _render_urgent_response_alerts(projects: List[ProjectSummary], reports: List
                 <div style="border: 2px solid #FF4B4B; border-radius: 8px; padding: 12px; margin: 8px 0; background-color: #FFF5F5;">
                     <h4 style="margin: 0; color: #FF4B4B;">⚠️ {project.project_name}</h4>
                     <p style="margin: 4px 0;"><strong>ステータス:</strong> {status_text}</p>
-                    <p style="margin: 4px 0;"><strong>完了予定:</strong> {project.estimated_completion.strftime('%Y-%m-%d') if project.estimated_completion and hasattr(project.estimated_completion, 'strftime') else project.estimated_completion}</p>
+                    <p style="margin: 4px 0;"><strong>完了予定:</strong> {project.estimated_completion.strftime('%Y-%m-%d') if project.estimated_completion and hasattr(project.estimated_completion, 'strftime') else ('不明' if project.estimated_completion is None else str(project.estimated_completion))}</p>
                     <p style="margin: 4px 0; color: #FF4B4B;"><strong>緊急対応理由:</strong> {reasons_text}</p>
-                    <p style="margin: 4px 0; color: #FF4B4B; font-weight: bold;">→ 現場確認・対応検討が必要です</p>
+                    <p style="margin: 4px 0; color: #FF4B4B;"><strong>要対応内容:</strong> {', '.join(getattr(project, 'recommended_actions', ['現場確認・対応検討が必要です']))}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -789,7 +903,20 @@ def _render_latest_report_details(project: ProjectSummary, reports: List = None)
     project_reports = [r for r in reports if getattr(r, 'project_id', None) == project.project_id]
     
     if not project_reports:
-        st.info("このプロジェクトに関連するレポートが見つかりません。")
+        # 報告書がない案件の場合の表示
+        if getattr(project, 'total_reports', 1) == 0:
+            st.warning("📋 **報告書なし案件**")
+            st.markdown(f"**案件ID:** {project.project_id}")
+            st.markdown(f"**案件名:** {project.project_name}")
+            st.markdown(f"**担当者:** {project.responsible_person}")
+            st.markdown(f"**場所:** {getattr(project, 'location', '不明')}")
+            st.markdown(f"**開始からの経過日数:** {project.days_since_last_report}日")
+            
+            st.markdown("**推奨対応:**")
+            for action in getattr(project, 'recommended_actions', []):
+                st.markdown(f"• {action}")
+        else:
+            st.info("このプロジェクトに関連するレポートが見つかりません。")
         return
     
     # 最新レポートを特定
@@ -821,14 +948,53 @@ def _render_latest_report_details(project: ProjectSummary, reports: List = None)
             'normal': '#28a745'
         }
         
-        current_status = getattr(latest_report, 'current_status', 'normal')
+        # ステータスの日本語変換
+        status_labels = {
+            'stopped': '停止',
+            'major_delay': '重大な遅延',
+            'minor_delay': '軽微な遅延', 
+            'normal': '順調'
+        }
+        
+        # リスクレベルの日本語変換
+        risk_labels = {
+            'high': '高',
+            'medium': '中',
+            'low': '低',
+            'HIGH': '高',
+            'MEDIUM': '中',
+            'LOW': '低'
+        }
+        
+        # 最新報告書のステータスを取得（StatusFlagの場合はvalueを取得）
+        raw_status = getattr(latest_report, 'status_flag', None)
+        if raw_status:
+            if hasattr(raw_status, 'value'):
+                current_status = raw_status.value
+            else:
+                current_status = str(raw_status).lower()
+        else:
+            current_status = 'normal'
+        
+        # 最新報告書のリスクレベルを取得（RiskLevelの場合はvalueを取得）
+        raw_risk = getattr(latest_report, 'risk_level', None)
+        if raw_risk:
+            if hasattr(raw_risk, 'value'):
+                risk_level = raw_risk.value
+            else:
+                risk_level = str(raw_risk).lower()
+        else:
+            risk_level = 'low'
+        
+        status_text = status_labels.get(current_status, current_status)
+        risk_text = risk_labels.get(risk_level, risk_level)
         color = status_color.get(current_status, '#666666')
         
         st.markdown(f"""
         <div style="padding: 8px; border-radius: 4px; background-color: {color}20; border-left: 4px solid {color};">
-            <strong>ステータス:</strong> {current_status}<br/>
-            <strong>リスクレベル:</strong> {getattr(latest_report, 'risk_level', '不明')}<br/>
-            <strong>信頼度:</strong> {getattr(latest_report, 'analysis_confidence', 0.0):.1%}
+            <strong>ステータス:</strong> {status_text}<br/>
+            <strong>リスクレベル:</strong> {risk_text}<br/>
+            <strong>信頼度:</strong> {getattr(latest_report, 'analysis_confidence', 0.0) * 100:.1f}%
         </div>
         """, unsafe_allow_html=True)
 
@@ -1029,19 +1195,30 @@ def _render_project_based_delay_reason_chart(projects: List[ProjectSummary]):
     
     # プロジェクトから遅延理由を集計
     for project in projects:
+        project_has_delays = False
+        
         if hasattr(project, 'delay_reasons') and project.delay_reasons:
             # delay_reasonsフィールドがある場合
             for delay_reason in project.delay_reasons:
                 if isinstance(delay_reason, dict):
-                    category = delay_reason.get('category', '')
+                    # 解決済みの遅延理由は除外
+                    status = delay_reason.get('status', '')
+                    if status == '解決済み':
+                        continue
+                    
+                    # 統合分析結果の形式に対応
+                    category = delay_reason.get('delay_category', delay_reason.get('category', ''))
                     if category in delay_counts:
                         delay_counts[category] += 1
+                        project_has_delays = True
                     elif category:  # 未知のカテゴリ
                         if "重大問題（要人的確認）" not in delay_counts:
                             delay_counts["重大問題（要人的確認）"] = 0
                         delay_counts["重大問題（要人的確認）"] += 1
-        else:
-            # delay_reasonsフィールドがない、または空の場合
+                        project_has_delays = True
+        
+        # 遅延理由がない場合は「遅延なし」にカウント
+        if not project_has_delays:
             delay_counts["遅延なし"] += 1
     
     # チャートデータを作成（ゼロ以外のみ）
@@ -1084,3 +1261,71 @@ def _render_project_based_delay_reason_chart(projects: List[ProjectSummary]):
         st.markdown("- プロジェクトに遅延理由が設定されていない")
         st.markdown("- 最新レポートに遅延理由が含まれていない")
         st.markdown("- delay_reasonsフィールドのプロジェクトへの反映が未完了")
+
+def _load_all_master_projects() -> List[Dict[str, Any]]:
+    """プロジェクトマスターデータを読み込み"""
+    import json
+    from pathlib import Path
+    
+    try:
+        master_file = Path("data/sample_construction_data/project_reports_mapping.json")
+        if master_file.exists():
+            with open(master_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        import streamlit as st
+        st.error(f"プロジェクトマスターデータの読み込みに失敗しました: {e}")
+    
+    return []
+
+def _parse_completion_date(date_str: str) -> Optional[datetime]:
+    """完了予定日を解析（「未定」などの特殊値に対応）"""
+    if not date_str or date_str == '未定':
+        return None
+    
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        # 解析できない場合はNoneを返す
+        return None
+
+def _create_no_report_project_summary(master_project: Dict[str, Any]) -> ProjectSummary:
+    """報告書がない案件の疑似ProjectSummaryを作成"""
+    from app.services.project_aggregator import ProjectSummary
+    from app.models.report import StatusFlag, RiskLevel
+    from datetime import datetime, timedelta
+    
+    # 開始日から経過日数を計算
+    start_date = _parse_completion_date(master_project.get('start_date', '2025-01-01'))
+    if start_date:
+        days_since_start = (datetime.now() - start_date).days
+    else:
+        days_since_start = 30  # デフォルト値
+    
+    # 疑似ProjectSummaryを作成
+    no_report_project = ProjectSummary(
+        project_id=master_project['project_id'],
+        project_name=master_project['project_name'],
+        location=master_project.get('location', '不明'),
+        current_phase=master_project.get('current_phase', '不明'),
+        start_date=_parse_completion_date(master_project.get('start_date', '2025-01-01')),
+        estimated_completion=_parse_completion_date(master_project.get('estimated_completion')),
+        responsible_person=master_project.get('responsible_person', '不明'),
+        current_status=None,  # 不明
+        risk_level=RiskLevel.HIGH,  # 報告書がないため高リスク
+        latest_report_date=None,  # 報告書なし
+        latest_report_summary="報告書が見当たりません",
+        total_reports=0,
+        days_since_last_report=days_since_start  # 開始日からの経過日数
+    )
+    
+    # 緊急対応理由を設定
+    no_report_project.urgent_reasons = ["報告書が見当たらず、進捗状況が不明です"]
+    no_report_project.recommended_actions = [
+        "担当者への状況確認",
+        "現場確認の実施", 
+        "報告書提出の催促",
+        "案件の実施状況確認"
+    ]
+    
+    return no_report_project

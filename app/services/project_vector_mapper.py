@@ -239,14 +239,141 @@ class ProjectVectorMapper:
             return 0.0
     
     def _extract_matched_keywords(self, query: str, description: str) -> List[str]:
-        """マッチしたキーワード抽出"""
+        """マッチしたキーワード抽出（表記ゆれ対応）"""
         import re
+        from difflib import SequenceMatcher
         
         query_words = set(re.findall(r'[ぁ-んァ-ヶ一-龠a-zA-Z0-9]+', query))
         desc_words = set(re.findall(r'[ぁ-んァ-ヶ一-龠a-zA-Z0-9]+', description))
         
-        matched = query_words.intersection(desc_words)
-        return list(matched)
+        # 完全一致
+        exact_matched = query_words.intersection(desc_words)
+        
+        # 表記ゆれ対応（類似度0.8以上）
+        fuzzy_matched = []
+        for q_word in query_words:
+            for d_word in desc_words:
+                if q_word not in exact_matched and d_word not in exact_matched:
+                    similarity = SequenceMatcher(None, q_word, d_word).ratio()
+                    if similarity >= 0.8:
+                        fuzzy_matched.append(f"{q_word}≈{d_word}")
+        
+        return list(exact_matched) + fuzzy_matched
+    
+    def generate_search_reasoning(self, query_text: str, search_results: List[VectorSearchResult]) -> Dict[str, Any]:
+        """ベクター検索結果の詳細な根拠生成（表記ゆれ対応）"""
+        if not search_results:
+            return {
+                "method": "vector_search",
+                "status": "no_results",
+                "reason": "該当するプロジェクトが見つかりませんでした",
+                "confidence": 0.0
+            }
+        
+        top_result = search_results[0]
+        project_metadata = self.project_metadata.get(top_result.project_id, {})
+        
+        # プロジェクトマスターデータから詳細な根拠分析
+        reasoning_details = {
+            "method": "vector_search_with_fuzzy",
+            "vector_similarity": top_result.similarity_score,
+            "project_id": top_result.project_id,
+            "project_name": project_metadata.get('project_name', '不明'),
+            "matched_elements": [],
+            "fuzzy_matches": [],
+            "confidence": top_result.similarity_score
+        }
+        
+        # プロジェクトマスターの各項目との一致度分析
+        master_fields = {
+            "station_name": "局名",
+            "station_number": "局番", 
+            "location": "所在地",
+            "aurora_plan": "Auroraプラン",
+            "responsible_person": "担当者"
+        }
+        
+        from difflib import SequenceMatcher
+        import re
+        
+        query_words = set(re.findall(r'[ぁ-んァ-ヶ一-龠a-zA-Z0-9\-]+', query_text))
+        
+        for field_key, field_name in master_fields.items():
+            field_value = project_metadata.get(field_key, '')
+            if not field_value or field_value == '不明':
+                continue
+                
+            # 完全一致チェック
+            if field_value in query_text:
+                reasoning_details["matched_elements"].append({
+                    "type": field_name,
+                    "master_value": field_value,
+                    "match_type": "完全一致",
+                    "similarity": 1.0
+                })
+                continue
+            
+            # 部分一致・表記ゆれチェック
+            field_words = set(re.findall(r'[ぁ-んァ-ヶ一-龠a-zA-Z0-9\-]+', field_value))
+            
+            for field_word in field_words:
+                if len(field_word) < 2:  # 短すぎる単語はスキップ
+                    continue
+                    
+                # 完全一致
+                if field_word in query_words:
+                    reasoning_details["matched_elements"].append({
+                        "type": field_name,
+                        "master_value": field_word,
+                        "match_type": "部分一致",
+                        "similarity": 1.0
+                    })
+                    continue
+                
+                # 表記ゆれチェック
+                for query_word in query_words:
+                    if len(query_word) < 2:
+                        continue
+                    similarity = SequenceMatcher(None, field_word, query_word).ratio()
+                    if similarity >= 0.8:
+                        reasoning_details["fuzzy_matches"].append({
+                            "type": field_name,
+                            "master_value": field_word,
+                            "query_value": query_word,
+                            "similarity": similarity,
+                            "match_type": "表記ゆれ"
+                        })
+        
+        # 総合的な根拠文生成
+        reason_parts = []
+        
+        if reasoning_details["matched_elements"]:
+            exact_matches = [m for m in reasoning_details["matched_elements"] if m["match_type"] in ["完全一致", "部分一致"]]
+            if exact_matches:
+                match_descriptions = [f"{m['type']}「{m['master_value']}」" for m in exact_matches]
+                reason_parts.append(f"完全一致: {', '.join(match_descriptions)}")
+        
+        if reasoning_details["fuzzy_matches"]:
+            fuzzy_descriptions = [f"{m['type']}「{m['master_value']}」≈「{m['query_value']}」({m['similarity']:.2f})" for m in reasoning_details["fuzzy_matches"]]
+            reason_parts.append(f"表記ゆれ: {', '.join(fuzzy_descriptions)}")
+        
+        if reason_parts:
+            reasoning_details["reason"] = f"ベクトル類似度は{top_result.similarity_score:.3f}と一番高く、{'; '.join(reason_parts)}が一致／類似しているためです"
+        else:
+            reasoning_details["reason"] = f"ベクトル類似度は{top_result.similarity_score:.3f}と一番高いですが、明確なキーワード一致はありません"
+            reasoning_details["confidence"] = min(reasoning_details["confidence"], 0.6)  # キーワード一致がない場合は信頼度を下げる
+        
+        # 信頼度調整（より現実的な値に）
+        match_count = len(reasoning_details["matched_elements"]) + len(reasoning_details["fuzzy_matches"])
+        if match_count > 0:
+            # マッチ数に応じて信頼度を上げるが、ベクター類似度を基準とする
+            confidence_boost = match_count * 0.05  # より控えめな調整
+            reasoning_details["confidence"] = min(reasoning_details["confidence"] + confidence_boost, 0.95)  # 最大0.95に制限
+        else:
+            # キーワード一致がない場合はベクター類似度のみ
+            reasoning_details["confidence"] = reasoning_details["confidence"]
+        
+        return reasoning_details
     
     def update_project_vectors_from_master(self) -> int:
         """プロジェクトマスターからベクターデータを更新"""

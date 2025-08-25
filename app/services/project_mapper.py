@@ -277,8 +277,11 @@ class ProjectMapper:
             if search_results:
                 best_result = search_results[0]
                 
+                # 🆕 詳細な根拠生成
+                reasoning = self.vector_mapper.generate_search_reasoning(query_text, search_results)
+                
                 # 信頼度 = ベクター類似度そのまま
-                confidence = best_result.similarity_score
+                confidence = reasoning.get("confidence", best_result.similarity_score)
                 
                 return ProjectMapping(
                     project_id=best_result.project_id,
@@ -288,7 +291,12 @@ class ProjectMapper:
                     extracted_info={
                         "query_text": query_text,
                         "vector_similarity": best_result.similarity_score,
-                        "matched_keywords": best_result.matched_keywords
+                        "matched_keywords": best_result.matched_keywords,
+                        # 🆕 詳細な根拠情報
+                        "reasoning": reasoning.get("reason", ""),
+                        "matched_elements": reasoning.get("matched_elements", []),
+                        "fuzzy_matches": reasoning.get("fuzzy_matches", []),
+                        "project_name": reasoning.get("project_name", "不明")
                     }
                 )
             

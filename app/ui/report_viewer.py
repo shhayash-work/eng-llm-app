@@ -9,6 +9,27 @@ from datetime import datetime
 from app.models.report import DocumentReport, ReportType, StatusFlag
 from app.config.settings import RISK_FLAGS
 
+def get_report_type_japanese(report_type):
+    """レポート種別を日本語に変換"""
+    type_mapping = {
+        ReportType.CONSTRUCTION_REPORT: "建設報告書",
+        ReportType.TROUBLE_REPORT: "トラブル報告書", 
+        ReportType.PROGRESS_UPDATE: "進捗報告書",
+        ReportType.CONSTRUCTION_ESTIMATE: "工事見積書",
+        ReportType.NEGOTIATION_PROGRESS: "交渉経緯報告書",
+        ReportType.STRUCTURAL_DESIGN: "構造設計書",
+        ReportType.OTHER: "その他"
+    }
+    return type_mapping.get(report_type, str(report_type.value) if hasattr(report_type, 'value') else str(report_type))
+
+def get_construction_phase(report):
+    """建設工程情報を取得"""
+    if hasattr(report, 'report_type_phase_mapping') and report.report_type_phase_mapping:
+        phase_mapping = report.report_type_phase_mapping
+        if isinstance(phase_mapping, dict):
+            return phase_mapping.get('expected_primary_phase', '不明')
+    return '不明'
+
 def render_report_list(reports: List[DocumentReport]):
     """報告書一覧を表示"""
     st.markdown("<div class='custom-header'>報告書一覧</div>", unsafe_allow_html=True)
@@ -28,9 +49,13 @@ def render_report_list(reports: List[DocumentReport]):
     render_report_table(filtered_reports)
     
     # 詳細表示
-    if 'selected_report_index' in st.session_state:
-        selected_report = filtered_reports[st.session_state.selected_report_index]
-        render_report_detail(selected_report)
+    if 'selected_report_index' in st.session_state and st.session_state.selected_report_index is not None:
+        if 0 <= st.session_state.selected_report_index < len(filtered_reports):
+            selected_report = filtered_reports[st.session_state.selected_report_index]
+            render_report_detail(selected_report)
+        else:
+            # インデックスが範囲外の場合はリセット
+            st.session_state.selected_report_index = None
 
 def render_report_filters(reports: List[DocumentReport]):
     """レポートフィルターを表示（表項目順に配置）"""
@@ -226,7 +251,8 @@ def render_report_table(reports: List[DocumentReport]):
             "選択": False,
             "ファイル名": report.file_name,
             "プロジェクトID": report.project_id or "未抽出",
-            "レポート種別": report.report_type.value,
+            "レポート種別": get_report_type_japanese(report.report_type),
+            "建設工程": get_construction_phase(report),
             "ステータス": status_display,
             "リスクレベル": risk_display,
             "緊急度": urgency_score,
@@ -247,7 +273,7 @@ def render_report_table(reports: List[DocumentReport]):
                 default=False,
             )
         },
-        disabled=["ファイル名", "レポート種別", "フラグ", "リスクレベル", "緊急度", "要約", "作成日時"],
+        disabled=["ファイル名", "レポート種別", "建設工程", "フラグ", "リスクレベル", "緊急度", "要約", "作成日時"],
         hide_index=True,
         use_container_width=True
     )
@@ -268,7 +294,8 @@ def render_report_detail(report: DocumentReport):
     with col1:
         st.write("**基本情報**")
         st.write(f"**ファイル名:** {report.file_name}")
-        st.write(f"**レポート種別:** {report.report_type.value}")
+        st.write(f"**レポート種別:** {get_report_type_japanese(report.report_type)}")
+        st.write(f"**建設工程:** {get_construction_phase(report)}")
         st.write(f"**作成日時:** {report.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
         st.write(f"**ファイルパス:** {report.file_path}")
     
