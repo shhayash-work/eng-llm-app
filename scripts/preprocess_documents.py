@@ -229,7 +229,8 @@ class PreprocessingService:
         return {
             "file_path": report.file_path,
             "file_name": report.file_name,
-            "content_preview": report.content[:200] + "..." if len(report.content) > 200 else report.content,
+            "content": report.content,  # 全文を保存
+            "content_preview": report.content[:200] + "..." if len(report.content) > 200 else report.content,  # プレビュー用（後方互換性）
             "report_type": report.report_type.value if report.report_type else None,
             
             # 🆕 元報告書の更新時間を明示的に保存
@@ -594,12 +595,14 @@ def main():
         print("   - data/processed_reports/ (全ての処理済みファイル)")
         print("   - data/context_analysis/ (全ての統合分析結果)")
         print("   - vector_store/ (全てのベクターデータ)")
+        print("   - data/confirmed_mappings.json (確定済みマッピング)")
         print()
         
         # 削除対象の確認
         processed_dir = Path("data/processed_reports")
         context_dir = Path("data/context_analysis")
         vector_dir = Path("vector_store")
+        confirmed_mappings_file = Path("data/confirmed_mappings.json")
         
         if processed_dir.exists():
             file_count = len(list(processed_dir.glob("*.json")))
@@ -612,6 +615,9 @@ def main():
         if vector_dir.exists():
             vector_size = sum(f.stat().st_size for f in vector_dir.rglob('*') if f.is_file()) / (1024*1024)
             print(f"   🗂️  ベクターストア: {vector_size:.1f}MB")
+        
+        if confirmed_mappings_file.exists():
+            print(f"   📋 確定済みマッピング: 存在")
         
         print()
         confirmation = input("続行しますか？ (y/N): ").strip().lower()
@@ -630,6 +636,9 @@ def main():
         if vector_dir.exists():
             shutil.rmtree(vector_dir)
             print("🗑️  vector_store/ を削除しました")
+        if confirmed_mappings_file.exists():
+            confirmed_mappings_file.unlink()
+            print("🗑️  data/confirmed_mappings.json を削除しました")
         print()
     
     # 事前処理実行

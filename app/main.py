@@ -22,10 +22,9 @@ from app.config.settings import (
     SHAREPOINT_DOCS_DIR,
     CONSTRUCTION_DATA_DIR
 )
-from app.models.report import DocumentReport, ReportType, FlagType
+from app.models.report import DocumentReport, ReportType, StatusFlag
 from app.models.construction import ConstructionProject, PhaseStatus, RiskLevel, ConstructionPhase
 from app.services.document_processor import DocumentProcessor
-from app.services.flag_classifier import FlagClassifier
 from app.ui.dashboard import render_dashboard
 from app.ui.project_dashboard import render_project_dashboard
 from app.services.project_aggregator import ProjectAggregator
@@ -296,7 +295,6 @@ def load_sample_construction_data() -> List[ConstructionProject]:
         logger.error(f"Failed to load construction data: {e}")
         return []
 
-@st.cache_data(ttl=300)
 def load_and_process_documents(llm_provider: str = "ollama") -> List[DocumentReport]:
     """文書を読み込んで処理"""
     try:
@@ -317,7 +315,7 @@ def _deserialize_report(data: Dict[str, Any]) -> Optional[DocumentReport]:
             file_path=data["file_path"],
             file_name=data["file_name"],
             report_type=ReportType(data["report_type"]) if data.get("report_type") else ReportType.PROGRESS_UPDATE,
-            content=data.get("content", data.get("content_preview", "")),
+            content=data.get("content", data.get("content_preview", "")),  # contentを優先、なければcontent_preview
             created_at=datetime.fromisoformat(data.get("processed_at", datetime.now().isoformat())),
             project_id=data.get("project_id")  # プロジェクトID復元
         )
@@ -370,7 +368,6 @@ def _deserialize_report(data: Dict[str, Any]) -> Optional[DocumentReport]:
         logger.error(f"Failed to deserialize report: {e}")
         return None
 
-@st.cache_data(ttl=60)
 def load_preprocessed_documents() -> List[DocumentReport]:
     """事前処理済み文書データを読み込み（バイナリキャッシュ + 並列処理）"""
     try:
@@ -575,6 +572,10 @@ def update_source_data(file_name: str, new_project_id: str):
             if not data['validation_issues']:
                 data['has_unexpected_values'] = False
                 logger.info("Set has_unexpected_values to False")
+        
+        # requires_mapping_reviewフラグをFalseに設定（確定済みのため）
+        data['requires_mapping_review'] = False
+        logger.info("Set requires_mapping_review to False (confirmed mapping)")
         
         # JSONファイルを保存
         try:
@@ -1004,25 +1005,88 @@ def render_report_editor(reports: List[DocumentReport]):
                         
                         # JSONファイルに保存
                         json_path = Path(f"data/processed_reports/{selected_report.file_name.replace('.xlsx', '.json').replace('.docx', '.json').replace('.pdf', '.json').replace('.txt', '.json')}")
+                        logger.info(f"報告書更新: JSONファイルパス = {json_path}")
+                        
                         if json_path.exists():
                             # 既存のJSONデータを読み込み
                             with open(json_path, 'r', encoding='utf-8') as f:
                                 json_data = json.load(f)
+                            logger.info(f"報告書更新: JSONファイル読み込み成功")
                             
                             # データを更新
                             json_data['project_id'] = project_id
                             json_data['status_flag'] = status_mapping[status]
                             json_data['risk_level'] = risk
                             json_data['urgency_score'] = urgency
+                            
+                            # analysis_resultが存在することを確認
+                            if 'analysis_result' not in json_data:
+                                json_data['analysis_result'] = {}
                             json_data['analysis_result']['summary'] = summary
+                            
                             # issues と key_points は既存の値を保持
                             # json_data['analysis_result']['issues'] = [issue.strip() for issue in issues.split('\n') if issue.strip()]
                             # json_data['analysis_result']['key_points'] = [point.strip() for point in key_points.split('\n') if point.strip()]
                             json_data['delay_reasons'] = [reason.strip() for reason in delay_reasons_text.split('\n') if reason.strip()]
                             
+                            # validation_issuesを更新（必須項目チェック）
+                            validation_issues = []
+                            if not project_id or project_id.strip() == "":
+                                validation_issues.append("必須項目不足: プロジェクトID")
+                            if not aurora_plan or aurora_plan.strip() == "" or aurora_plan == "不明":
+                                validation_issues.append("必須項目不足: auRoraプラン名")
+                            if not station_name or station_name.strip() == "" or station_name == "不明":
+                                validation_issues.append("必須項目不足: 局名")
+                            if not address or address.strip() == "" or address == "不明":
+                                validation_issues.append("必須項目不足: 住所")
+                            if not report_type or report_type == "選択してください":
+                                validation_issues.append("必須項目不足: 報告書種別")
+                            if not status or status == "選択してください":
+                                validation_issues.append("必須項目不足: ステータス")
+                            if not risk or risk == "選択してください":
+                                validation_issues.append("必須項目不足: リスクレベル")
+                            
+                            json_data['validation_issues'] = validation_issues
+                            json_data['has_unexpected_values'] = len(validation_issues) > 0
+                            json_data['requires_content_review'] = len(validation_issues) > 0
+                            
+                            logger.info(f"報告書更新: データ更新完了 - validation_issues: {len(validation_issues)}件")
+                            
                             # ファイルに保存
                             with open(json_path, 'w', encoding='utf-8') as f:
                                 json.dump(json_data, f, ensure_ascii=False, indent=2)
+                            logger.info(f"報告書更新: JSONファイル保存成功")
+                            
+                            # 対応するキャッシュファイルも更新
+                            cache_path = json_path.with_suffix('.cache')
+                            if cache_path.exists():
+                                try:
+                                    import pickle
+                                    # キャッシュファイルを読み込み
+                                    with open(cache_path, 'rb') as f:
+                                        cached_report = pickle.load(f)
+                                    
+                                    # キャッシュファイルのデータも更新
+                                    cached_report.project_id = project_id
+                                    cached_report.status_flag = StatusFlag(status_mapping[status])
+                                    cached_report.risk_level = RiskLevel(risk)
+                                    cached_report.urgency_score = urgency
+                                    if cached_report.analysis_result:
+                                        cached_report.analysis_result.summary = summary
+                                    cached_report.delay_reasons = [reason.strip() for reason in delay_reasons_text.split('\n') if reason.strip()]
+                                    cached_report.validation_issues = validation_issues
+                                    cached_report.has_unexpected_values = len(validation_issues) > 0
+                                    cached_report.requires_content_review = len(validation_issues) > 0
+                                    
+                                    # キャッシュファイルを保存
+                                    with open(cache_path, 'wb') as f:
+                                        pickle.dump(cached_report, f)
+                                    logger.info(f"報告書更新: キャッシュファイル更新成功")
+                                except Exception as cache_error:
+                                    logger.warning(f"キャッシュファイル更新エラー: {cache_error}")
+                        else:
+                            logger.error(f"報告書更新: JSONファイルが見つかりません: {json_path}")
+                            raise FileNotFoundError(f"JSONファイルが見つかりません: {json_path}")
                     
                     # 確定済みリストに追加
                     st.session_state.confirmed_edited_reports.add(selected_report.file_path)
@@ -1060,7 +1124,7 @@ def render_project_mapping_review(reports: List[DocumentReport]):
     if reports:
         # 信頼度が低いマッピングを抽出（更新失敗も含む）
         low_confidence_reports = []
-        confirmed_mappings = st.session_state.get('confirmed_mappings', {})
+        confirmed_mappings = load_confirmed_mappings()  # ファイルから直接読み込み
         
         for report in reports:
             is_confirmed = report.file_name in confirmed_mappings
@@ -1437,7 +1501,7 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     required_review_reports = content_review_reports
     
     # 確認推奨：案件紐づけ確認が必要（案件紐づけ信頼度管理と同じロジック）
-    confirmed_mappings = st.session_state.get('confirmed_mappings', {})
+    confirmed_mappings = load_confirmed_mappings()  # ファイルから直接読み込み
     recommended_review_reports = []
     
     for report in reports:
@@ -1593,10 +1657,10 @@ def render_data_quality_dashboard(reports: List[DocumentReport]):
     # 確認推奨の理由別集計（推奨アクション用）
     # 案件紐づけ信頼度管理と同じロジックを使用
     recommended_reasons = {}
-    confirmed_mappings = st.session_state.get('confirmed_mappings', {})
+    confirmed_mappings_for_actions = load_confirmed_mappings()  # ファイルから直接読み込み
     
     for report in reports:
-        is_confirmed = report.file_name in confirmed_mappings
+        is_confirmed = report.file_name in confirmed_mappings_for_actions
         is_update_failed = getattr(report, '_update_failed', False)
         
         # 案件紐づけ信頼度管理と同じ表示対象判定

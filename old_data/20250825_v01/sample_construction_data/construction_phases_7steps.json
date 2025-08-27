@@ -1,0 +1,84 @@
+{
+  "construction_phases_7steps": {
+    "description": "建設工程7ステップ体系",
+    "phases": [
+      {
+        "step": 1,
+        "phase_name": "置局発注",
+        "description": "プロジェクト登録と工事見積書の完成",
+        "required_documents": ["工事見積書"],
+        "status_determination": {
+          "completed": "建設工程データベース登録済み かつ 工事見積書報告完了",
+          "in_progress": "建設工程データベース登録済み かつ 工事見積書未完了",
+          "not_started": "建設工程データベース未登録"
+        }
+      },
+      {
+        "step": 2,
+        "phase_name": "基本同意",
+        "description": "オーナーとの基本的な合意形成",
+        "required_documents": ["交渉経緯報告書"],
+        "status_determination": {
+          "completed": "交渉経緯報告書報告完了",
+          "in_progress": "交渉経緯報告書報告途中",
+          "not_started": "交渉経緯報告書なし"
+        }
+      },
+      {
+        "step": 3,
+        "phase_name": "基本図承認",
+        "description": "構造設計図面の承認取得",
+        "required_documents": ["強度計算結果報告書"],
+        "status_determination": {
+          "completed": "強度計算結果報告書報告完了",
+          "in_progress": "強度計算結果報告書報告途中",
+          "not_started": "強度計算結果報告書なし"
+        }
+      },
+      {
+        "step": 4,
+        "phase_name": "内諾",
+        "description": "建設許可の事前同意取得",
+        "required_documents": [],
+        "status_determination": {
+          "completed": "内諾完了報告あり",
+          "in_progress": "内諾手続き中",
+          "not_started": "内諾未着手"
+        }
+      },
+      {
+        "step": 5,
+        "phase_name": "附帯着工",
+        "description": "附帯工事の着工",
+        "required_documents": [],
+        "status_determination": {
+          "completed": "附帯着工完了報告あり",
+          "in_progress": "附帯着工実施中",
+          "not_started": "附帯着工未着手"
+        }
+      },
+      {
+        "step": 6,
+        "phase_name": "電波発射",
+        "description": "電波発射開始",
+        "required_documents": [],
+        "status_determination": {
+          "completed": "電波発射完了報告あり",
+          "in_progress": "電波発射準備中",
+          "not_started": "電波発射未着手"
+        }
+      },
+      {
+        "step": 7,
+        "phase_name": "工事検収",
+        "description": "工事完了検収",
+        "required_documents": [],
+        "status_determination": {
+          "completed": "工事検収完了報告あり",
+          "in_progress": "工事検収実施中",
+          "not_started": "工事検収未着手"
+        }
+      }
+    ]
+  }
+}

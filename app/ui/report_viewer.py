@@ -212,12 +212,16 @@ def render_report_table(reports: List[DocumentReport]):
     # テーブルデータ準備
     table_data = []
     for i, report in enumerate(reports):
-        # フラグアイコン
-        flag_icons = []
-        for flag in report.flags:
-            flag_info = RISK_FLAGS.get(flag.value, {})
-            flag_icons.append(flag_info.get('name', flag.value))
-        flag_display = " ".join(flag_icons) if flag_icons else "-"
+        # フラグアイコン（新システムではstatus_flagを使用）
+        flag_display = "-"
+        if report.status_flag:
+            status_labels = {
+                'stopped': '🔴 停止',
+                'major_delay': '🟠 重大な遅延', 
+                'minor_delay': '🟡 軽微な遅延',
+                'normal': '🟢 順調'
+            }
+            flag_display = status_labels.get(report.status_flag.value, report.status_flag.value)
         
         # 分析結果
         if report.analysis_result:
@@ -305,13 +309,16 @@ def render_report_detail(report: DocumentReport):
             st.write(f"**リスクレベル:** {report.risk_level.value if report.risk_level else '不明'}")
             st.write(f"**緊急度スコア:** {getattr(report, 'urgency_score', 0)}/10")
             
-            # フラグ表示
-            if report.flags:
-                flag_displays = []
-                for flag in report.flags:
-                    flag_info = RISK_FLAGS.get(flag.value, {})
-                    flag_displays.append(flag_info.get('name', flag.value))
-                st.write(f"**フラグ:** {' '.join(flag_displays)}")
+            # ステータス表示（新システム）
+            if report.status_flag:
+                status_labels = {
+                    'stopped': '🔴 停止',
+                    'major_delay': '🟠 重大な遅延',
+                    'minor_delay': '🟡 軽微な遅延', 
+                    'normal': '🟢 順調'
+                }
+                status_display = status_labels.get(report.status_flag.value, report.status_flag.value)
+                st.write(f"**ステータス:** {status_display}")
     
     # タブ表示
     tab1, tab2, tab3, tab4 = st.tabs(["内容", "分析結果", "異常検知", "プロジェクト情報"])

@@ -1,0 +1,98 @@
+[
+  {
+    "project_id": "MO0001",
+    "project_name": "高輪ビル東基地局建設",
+    "station_name": "高輪ビル東",
+    "station_number": "TKNE-001",
+    "location": "東京都港区高輪4-1-18",
+    "aurora_plan": "容量対策_700M新設_B11追加",
+    "current_phase": "基本図承認",
+    "start_date": "2025-05-13",
+    "estimated_completion": "2025-11-30",
+    "responsible_person": "田中一郎"
+  },
+  {
+    "project_id": "MO0002",
+    "project_name": "新宿センター西基地局建設",
+    "station_name": "新宿センター西",
+    "station_number": "SJK-002",
+    "location": "東京都新宿区西新宿2-8-1",
+    "aurora_plan": "新設_5G屋上_28GHz試行",
+    "current_phase": "基本同意",
+    "start_date": "2025-07-18",
+    "estimated_completion": "2025-12-20",
+    "responsible_person": "佐藤次郎"
+  },
+  {
+    "project_id": "MO0003",
+    "project_name": "神田末広北基地局建設",
+    "station_name": "神田末広北",
+    "station_number": "KND-031",
+    "location": "東京都千代田区外神田4-3-1",
+    "aurora_plan": "新設_L800局_省スペース型",
+    "current_phase": "基本図承認",
+    "start_date": "2025-07-01",
+    "estimated_completion": "2025-11-15",
+    "responsible_person": "鈴木三郎"
+  },
+  {
+    "project_id": "MO0004",
+    "project_name": "渋谷スカイビル基地局建設",
+    "station_name": "渋谷スカイビル",
+    "station_number": "SBY-044",
+    "location": "東京都渋谷区渋谷2-2-1",
+    "aurora_plan": "新設_5G屋内_Sub6対応",
+    "current_phase": "置局発注",
+    "start_date": "2025-09-01",
+    "estimated_completion": "2025-12-31",
+    "responsible_person": "高橋四郎"
+  },
+  {
+    "project_id": "MO0005",
+    "project_name": "池袋サウスゲート基地局増設",
+    "station_name": "池袋サウスゲート",
+    "station_number": "IKB-055",
+    "location": "東京都豊島区南池袋1-28-2",
+    "aurora_plan": "増設_RRH 3Sector_2GHz",
+    "current_phase": "附帯着工",
+    "start_date": "2025-07-01",
+    "estimated_completion": "2026-02-14",
+    "responsible_person": "伊藤五郎"
+  },
+  {
+    "project_id": "MO0006",
+    "project_name": "銀座テラス南基地局建設",
+    "station_name": "銀座テラス南",
+    "station_number": "GNZ-106",
+    "location": "東京都中央区銀座7-12-3",
+    "aurora_plan": "新設_5G屋上_28GHz試行",
+    "current_phase": "基本同意",
+    "start_date": "2025-08-01",
+    "estimated_completion": "2026-02-20",
+    "responsible_person": "渡辺六郎"
+  },
+  {
+    "project_id": "MO0007",
+    "project_name": "赤坂タワー東基地局増設",
+    "station_name": "赤坂タワー東",
+    "station_number": "AKS-207",
+    "location": "東京都港区赤坂5-5-8",
+    "aurora_plan": "増設_RRH 2Sector_2GHz",
+    "current_phase": "基本同意",
+    "start_date": "2025-07-29",
+    "estimated_completion": "2025-12-10",
+    "responsible_person": "松本七郎"
+  },
+  {
+    "project_id": "MO0008",
+    "project_name": "船橋物流センター北基地局建設",
+    "station_name": "船橋物流センター北",
+    "station_number": "FNB-308",
+    "location": "千葉県船橋市浜町2-2-1",
+    "aurora_plan": "新設_L800局_省スペース型",
+    "current_phase": "置局発注",
+    "start_date": "2025-08-10",
+    "estimated_completion": "未定",
+    "responsible_person": "小林八郎"
+  }
+]

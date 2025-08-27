@@ -1,0 +1,52 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Construction-Estimate/estimate_MO0008_船橋物流センター北_v1.1.xlsx",
+  "file_name": "estimate_MO0008_船橋物流センター北_v1.1.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nパッケージ化見積書 | 併設工事 | 全国版 | 千葉県 | Ver.FNB-GL01-02\\n（併設鉄塔・柱グローバル化工事） | お取引先様使用欄 | FHANFJH888213\\n見積区分 | 見積版数 | 発行日 | 2025-08-19 00:00:00\\nauRoraプラン名 | 新設_L800局_省スペース型 | パッケージ化積算 | 1版\\n局名 | ...",
+  "report_type": "CONSTRUCTION_ESTIMATE",
+  "created_at": "2025-08-25T09:34:38.102769",
+  "original_file_mtime": "2025-08-25T09:34:38.102769",
+  "project_id": "MO0008",
+  "project_mapping_info": {
+    "confidence_score": 0.9,
+    "matching_method": "llm_direct",
+    "alternative_candidates": [],
+    "extracted_info": {
+      "llm_id": "MO0008",
+      "llm_confidence": 0.9
+    }
+  },
+  "status_flag": "stopped",
+  "risk_level": "高",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [
+    {
+      "category": "重大問題（要人的確認）",
+      "subcategory": "台風被害による工事中断",
+      "description": "台風による建物の大規模損傷のため、工事を一時中断",
+      "confidence": 0.9,
+      "evidence": "台風による建物の大規模損傷（安全確認のため屋上立入禁止）のため、工事を一時中断との記載"
+    }
+  ],
+  "urgency_score": 9,
+  "analysis_result": {
+    "summary": "船橋物流センター北のパッケージ化見積書、工事内容詳細あり",
+    "issues": [
+      "台風による建物の大規模損傷"
+    ],
+    "key_points": "パッケージ化見積書,工事内容詳細,台風被害による一時中断",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:33:07.223161"
+}

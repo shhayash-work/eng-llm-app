@@ -27,14 +27,6 @@ class StatusFlag(Enum):
 
 
 
-# 後方互換性のため旧フラグ定義も残す
-class FlagType(Enum):
-    """フラグタイプ（旧定義・後方互換性用）"""
-    EMERGENCY_STOP = "emergency_stop"
-    DELAY_RISK = "delay_risk"
-    TECHNICAL_ISSUE = "technical_issue"
-    PROCEDURE_PROBLEM = "procedure_problem"
-    REQUIRES_REVIEW = "requires_review"
 
 class RiskLevel(Enum):
     """リスクレベル"""
@@ -80,7 +72,7 @@ class DocumentReport:
     project_id: Optional[str] = None               # プロジェクトID（LLMで抽出）
     analysis_result: Optional[AnalysisResult] = None
     anomaly_detection: Optional[AnomalyDetection] = None
-    flags: List[FlagType] = None
+
     # 新しいフラグ体系
     status_flag: Optional[StatusFlag] = None
     # category_labels削除: 15カテゴリ遅延理由体系に統一
@@ -118,20 +110,7 @@ class DocumentReport:
     
     # current_status削除: status_flagで統一
     
-    def __post_init__(self):
-        if self.flags is None:
-            self.flags = []
-        # category_labels削除: 15カテゴリ遅延理由体系に統一
-    
-    def add_flag(self, flag: FlagType):
-        """フラグを追加"""
-        if flag not in self.flags:
-            self.flags.append(flag)
-    
-    def remove_flag(self, flag: FlagType):
-        """フラグを削除"""
-        if flag in self.flags:
-            self.flags.remove(flag)
+
     
     def get_priority_score(self) -> int:
         """優先度スコアを取得"""

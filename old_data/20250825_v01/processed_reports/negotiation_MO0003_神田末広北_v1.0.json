@@ -1,0 +1,93 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0003_神田末広北_v1.0.xlsx",
+  "file_name": "negotiation_MO0003_神田末広北_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nau置局02\\n1版\\n置局物件交渉経緯報告書\\n45841\\n【基地局情報】 | 【担当者情報】\\nプラン名 | 新設_L800局_省スペース型 | Kエンジ担当者名 | 設計センター 設計2G 工程管理T\\n局番 | KND-031 | 局名 | 神田末広北 | 元請会社・担当者名 | 株式会社 田中電工 田中太郎\\n物件番号 | X.X.ABCD12 | 分類 ...",
+  "report_type": "NEGOTIATION_PROGRESS",
+  "created_at": "2025-08-22T04:14:25.588233",
+  "original_file_mtime": "2025-08-22T04:14:25.588233",
+  "project_id": "MO0003",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0001",
+      "MO0005"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 神田末広北 場所: 東京都千代田区外神田4-3-1 局番: 不明 Aurora計画: 新設_L800局_省スペース型 担当者: 不明",
+      "vector_similarity": 0.9141071940385668,
+      "matched_keywords": [
+        "場所",
+        "局名",
+        "1",
+        "3",
+        "Aurora計画",
+        "東京都千代田区外神田4",
+        "新設",
+        "担当者",
+        "ス型",
+        "省スペ",
+        "L800局",
+        "神田末広北",
+        "局番"
+      ],
+      "reasoning": "ベクトル類似度は0.914と一番高く、完全一致: 局名「神田末広北」, 所在地「東京都千代田区外神田4-3-1」, Auroraプラン「新設_L800局_省スペース型」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "神田末広北",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "東京都千代田区外神田4-3-1",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "Auroraプラン",
+          "master_value": "新設_L800局_省スペース型",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "神田末広北基地局建設"
+    }
+  },
+  "status_flag": "minor_delay",
+  "risk_level": "中",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [
+    {
+      "category": "オーナー交渉難航",
+      "subcategory": "基本同意に難航（口頭同意）",
+      "description": "オーナーとの基本同意取得に時間を要している",
+      "confidence": 0.9,
+      "evidence": "オーナーとの基本同意取得に時間を要していると明記"
+    }
+  ],
+  "urgency_score": 4,
+  "analysis_result": {
+    "summary": "神田末広北基地局の交渉進捗、オーナーとの基本同意取得に時間を要している",
+    "issues": [
+      "オーナーとの基本同意取得に時間を要している"
+    ],
+    "key_points": "オーナー交渉難航,基本同意取得に時間を要している",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:17:00.357959"
+}

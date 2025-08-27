@@ -20,14 +20,15 @@ REPORT_AUDIT_DUMMY = {
 PROJECT_AUDIT_DUMMY = {
     # 基本数値
     "total_projects": 387,            # 全案件数
-    "active_projects": 312,           # 進行中案件数
+    "active_projects": 312,           # 進行中案件数（完了は除く）
     "completed_projects": 75,         # 完了案件数
     
-    # ステータス別
-    "normal_projects": 245,           # 順調案件数
-    "minor_delay_projects": 45,       # 軽微遅延案件数
-    "major_delay_projects": 18,       # 重大遅延案件数
-    "stopped_projects": 4,            # 停止案件数
+    # ステータス別（0に設定すると実際の値を使用）
+    "normal_projects": 0,             # 順調案件数（自動計算）
+    "minor_delay_projects": 0,        # 軽微遅延案件数（実際の値を使用）
+    "major_delay_projects": 0,        # 重大遅延案件数（実際の値を使用）
+    "stopped_projects": 0,            # 停止案件数（実際の値を使用）
+    "unknown_projects": 0,            # 不明案件数（実際の値を使用）
     
     # リスク別
     "high_risk_projects": 23,         # 高リスク案件数
@@ -117,14 +118,28 @@ def get_project_audit_metrics(actual_metrics: dict) -> dict:
     Returns:
         ダミー値が適用されたメトリクス辞書
     """
+    # 基本数値（ダミー値適用）
+    total_projects = get_dummy_value("project", "total_projects", actual_metrics.get("total_projects", 0))
+    active_projects = get_dummy_value("project", "active_projects", actual_metrics.get("active_projects", 0))
+    
+    # ステータス別（実際の値を使用）
+    stopped_projects = get_dummy_value("project", "stopped_projects", actual_metrics.get("stopped_count", 0))
+    major_delay_projects = get_dummy_value("project", "major_delay_projects", actual_metrics.get("major_delay_count", 0))
+    minor_delay_projects = get_dummy_value("project", "minor_delay_projects", actual_metrics.get("minor_delay_count", 0))
+    unknown_projects = get_dummy_value("project", "unknown_projects", actual_metrics.get("unknown_count", 0))
+    
+    # 順調工程数は自動計算（active_projects - 停止 - 重大遅延 - 軽微遅延 - 不明）
+    normal_projects = max(0, active_projects - stopped_projects - major_delay_projects - minor_delay_projects - unknown_projects)
+    
     return {
-        "total_projects": get_dummy_value("project", "total_projects", actual_metrics.get("total_projects", 0)),
-        "active_projects": get_dummy_value("project", "active_projects", actual_metrics.get("active_projects", 0)),
+        "total_projects": total_projects,
+        "active_projects": active_projects,
         "completed_projects": get_dummy_value("project", "completed_projects", actual_metrics.get("completed_projects", 0)),
-        "normal_projects": get_dummy_value("project", "normal_projects", actual_metrics.get("normal_projects", 0)),
-        "minor_delay_projects": get_dummy_value("project", "minor_delay_projects", actual_metrics.get("minor_delay_projects", 0)),
-        "major_delay_projects": get_dummy_value("project", "major_delay_projects", actual_metrics.get("major_delay_projects", 0)),
-        "stopped_projects": get_dummy_value("project", "stopped_projects", actual_metrics.get("stopped_projects", 0)),
+        "normal_projects": normal_projects,  # 自動計算
+        "minor_delay_projects": minor_delay_projects,
+        "major_delay_projects": major_delay_projects,
+        "stopped_projects": stopped_projects,
+        "unknown_projects": unknown_projects,
         "high_risk_projects": get_dummy_value("project", "high_risk_projects", actual_metrics.get("high_risk_projects", 0)),
         "medium_risk_projects": get_dummy_value("project", "medium_risk_projects", actual_metrics.get("medium_risk_projects", 0)),
         "low_risk_projects": get_dummy_value("project", "low_risk_projects", actual_metrics.get("low_risk_projects", 0)),

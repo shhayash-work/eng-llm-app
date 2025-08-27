@@ -55,10 +55,11 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
         "total_projects": actual_total_all_projects,
         "active_projects": len(active_projects),
         "completed_projects": len(projects) - len(active_projects),
-        "normal_projects": 0,  # ダミーで上書きされる
-        "minor_delay_projects": 0,  # 実際の値を使用するため0に設定
-        "major_delay_projects": 0,  # 実際の値を使用するため0に設定
-        "stopped_projects": 0,  # 実際の値を使用するため0に設定
+        # 実際の値を渡す（ダミーデータ設定で0の場合は実際の値が使用される）
+        "stopped_count": actual_metrics['stopped_count'],
+        "major_delay_count": actual_metrics['major_delay_count'],
+        "minor_delay_count": actual_metrics['minor_delay_count'],
+        "unknown_count": actual_metrics.get('unknown_count', 0),
         "high_risk_projects": actual_metrics.get('high_risk_count', 0),
         "medium_risk_projects": actual_metrics.get('medium_risk_count', 0),
         "low_risk_projects": actual_metrics.get('low_risk_count', 0),
@@ -67,27 +68,38 @@ def render_project_dashboard(projects: List[ProjectSummary], reports: List = Non
     
     dummy_metrics = get_project_audit_metrics(actual_project_metrics)
     
-    # 表示用メトリクスを設定（停止・遅延は実際の値を使用）
+    # 表示用メトリクスを設定（実際の値と自動計算された順調工程数を使用）
     metrics = {
         'total_projects': dummy_metrics['total_projects'],
-        'stopped_count': actual_metrics['stopped_count'],  # 実際の値
-        'major_delay_count': actual_metrics['major_delay_count'],  # 実際の値
-        'minor_delay_count': actual_metrics['minor_delay_count'],  # 実際の値
-        'normal_count': dummy_metrics['normal_projects'],
+        'active_projects': dummy_metrics['active_projects'],  # 進行中工程数
+        'stopped_count': dummy_metrics['stopped_projects'],  # 実際の値（ダミー設定で0なので実際の値）
+        'major_delay_count': dummy_metrics['major_delay_projects'],  # 実際の値
+        'minor_delay_count': dummy_metrics['minor_delay_projects'],  # 実際の値
+        'unknown_count': dummy_metrics.get('unknown_projects', 0),  # 不明工程数
+        'normal_count': dummy_metrics['normal_projects'],  # 自動計算された順調工程数
     }
     
-    # 分数表示も更新
-    metrics['stopped_fraction'] = f"{metrics['stopped_count']}/{metrics['total_projects']}"
-    metrics['major_delay_fraction'] = f"{metrics['major_delay_count']}/{metrics['total_projects']}"
-    metrics['minor_delay_fraction'] = f"{metrics['minor_delay_count']}/{metrics['total_projects']}"
-    metrics['normal_fraction'] = f"{metrics['normal_count']}/{metrics['total_projects']}"
+    # 分数表示も更新（進行中工程数ベース）
+    active_projects_count = dummy_metrics['active_projects']
+    metrics['stopped_fraction'] = f"{metrics['stopped_count']}/{active_projects_count}"
+    metrics['major_delay_fraction'] = f"{metrics['major_delay_count']}/{active_projects_count}"
+    metrics['minor_delay_fraction'] = f"{metrics['minor_delay_count']}/{active_projects_count}"
+    metrics['unknown_fraction'] = f"{metrics['unknown_count']}/{active_projects_count}"
+    metrics['normal_fraction'] = f"{metrics['normal_count']}/{active_projects_count}"
     
-    # パーセンテージも更新
-    if metrics['total_projects'] > 0:
-        metrics['stopped_percentage'] = (metrics['stopped_count'] / metrics['total_projects']) * 100
-        metrics['major_delay_percentage'] = (metrics['major_delay_count'] / metrics['total_projects']) * 100
-        metrics['minor_delay_percentage'] = (metrics['minor_delay_count'] / metrics['total_projects']) * 100
-        metrics['normal_percentage'] = (metrics['normal_count'] / metrics['total_projects']) * 100
+    # パーセンテージも更新（進行中工程数ベース）
+    if active_projects_count > 0:
+        metrics['stopped_percentage'] = (metrics['stopped_count'] / active_projects_count) * 100
+        metrics['major_delay_percentage'] = (metrics['major_delay_count'] / active_projects_count) * 100
+        metrics['minor_delay_percentage'] = (metrics['minor_delay_count'] / active_projects_count) * 100
+        metrics['unknown_percentage'] = (metrics['unknown_count'] / active_projects_count) * 100
+        metrics['normal_percentage'] = (metrics['normal_count'] / active_projects_count) * 100
+    else:
+        metrics['stopped_percentage'] = 0
+        metrics['major_delay_percentage'] = 0
+        metrics['minor_delay_percentage'] = 0
+        metrics['unknown_percentage'] = 0
+        metrics['normal_percentage'] = 0
     
     status_groups = aggregator.get_projects_by_status(active_projects)
     
@@ -193,12 +205,15 @@ def _render_project_metrics(metrics: Dict[str, Any]):
     
     col1, col2, col3, col4 = st.columns(4)
     
+    # 進行中工程数を取得（分母として使用）
+    active_count = metrics.get('active_projects', metrics['total_projects'])
+    
     with col1:
         color = "#FF6B35" if metrics['stopped_count'] > 0 else "#28a745"
         st.markdown(f"""
         <div class='metric-card-updated'>
             <h3>停止</h3>
-            <h2 style='color: {color};'>{metrics['stopped_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <h2 style='color: {color};'>{metrics['stopped_count']}<sub style='font-size: 0.8em; color: #666;'>/{active_count}</sub></h2>
             <p>{metrics['stopped_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
@@ -208,7 +223,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         st.markdown(f"""
         <div class='metric-card-updated'>
             <h3>重大な遅延</h3>
-            <h2 style='color: {color};'>{metrics['major_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <h2 style='color: {color};'>{metrics['major_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{active_count}</sub></h2>
             <p>{metrics['major_delay_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
@@ -218,7 +233,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         st.markdown(f"""
         <div class='metric-card-updated'>
             <h3>軽微な遅延</h3>
-            <h2 style='color: {color};'>{metrics['minor_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <h2 style='color: {color};'>{metrics['minor_delay_count']}<sub style='font-size: 0.8em; color: #666;'>/{active_count}</sub></h2>
             <p>{metrics['minor_delay_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
@@ -227,7 +242,7 @@ def _render_project_metrics(metrics: Dict[str, Any]):
         st.markdown(f"""
         <div class='metric-card-updated'>
             <h3>順調</h3>
-            <h2 style='color: #28a745;'>{metrics['normal_count']}<sub style='font-size: 0.8em; color: #666;'>/{metrics['total_projects']}</sub></h2>
+            <h2 style='color: #28a745;'>{metrics['normal_count']}<sub style='font-size: 0.8em; color: #666;'>/{active_count}</sub></h2>
             <p>{metrics['normal_percentage']:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)

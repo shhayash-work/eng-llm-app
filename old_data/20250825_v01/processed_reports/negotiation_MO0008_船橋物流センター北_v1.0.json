@@ -1,0 +1,95 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0008_船橋物流センター北_v1.0.xlsx",
+  "file_name": "negotiation_MO0008_船橋物流センター北_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nau置局02\\n1版\\n置局物件交渉経緯報告書\\n45888\\n【基地局情報】 | 【担当者情報】\\nプラン名 | 新設_L800局_省スペース型 | Kエンジ担当者名\\n局番 | FNB-308 | 局名 | 船橋物流センター北 | 元請会社・担当者名\\n物件番号 | X.X.ABCD12 | 分類 | 増設 | 局タイプ | 鉄塔 | 置局会社・担当者名\\n無線機...",
+  "report_type": "NEGOTIATION_PROGRESS",
+  "created_at": "2025-08-25T09:36:25.583427",
+  "original_file_mtime": "2025-08-25T09:36:25.583427",
+  "project_id": "MO0008",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0005",
+      "MO0007"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 船橋物流センター北 場所: 千葉県船橋市浜町2-2-1 局番: FNB-308 Aurora計画: 不明 担当者: 不明",
+      "vector_similarity": 0.9592514476118411,
+      "matched_keywords": [
+        "場所",
+        "北",
+        "局名",
+        "308",
+        "1",
+        "Aurora計画",
+        "2",
+        "担当者",
+        "船橋物流センタ",
+        "FNB",
+        "千葉県船橋市浜町2",
+        "局番"
+      ],
+      "reasoning": "ベクトル類似度は0.959と一番高く、完全一致: 局名「船橋物流センター北」, 局番「FNB-308」, 所在地「千葉県船橋市浜町2-2-1」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "船橋物流センター北",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "局番",
+          "master_value": "FNB-308",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "千葉県船橋市浜町2-2-1",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "船橋物流センター北基地局建設"
+    }
+  },
+  "status_flag": "stopped",
+  "risk_level": "高",
+  "has_unexpected_values": false,
+  "validation_issues": [
+    "必須項目不足: auRoraプラン名"
+  ],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [
+    {
+      "category": "重大問題（要人的確認）",
+      "subcategory": "台風被害による工事中断",
+      "description": "台風による建物の大規模損傷のため、工事を一時中断",
+      "confidence": 0.9,
+      "evidence": "台風による建物の大規模損傷（安全確認のため屋上立入禁止）のため、工事を一時中断との記載"
+    }
+  ],
+  "urgency_score": 9,
+  "analysis_result": {
+    "summary": "船橋物流センター北基地局の交渉進捗、台風による建物の大規模損傷のため、工事が中断",
+    "issues": [
+      "台風による建物の大規模損傷",
+      "工事中断"
+    ],
+    "key_points": "台風による建物の大規模損傷,工事中断",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:34:54.472452"
+}

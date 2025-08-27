@@ -184,7 +184,7 @@ def _deserialize_report_for_evaluation(data: Dict[str, Any]) -> Optional[Documen
             file_path=data["file_path"],
             file_name=data["file_name"],
             report_type=ReportType(data["report_type"]) if data.get("report_type") else ReportType.PROGRESS_UPDATE,
-            content=data.get("content", data.get("content_preview", "")),
+            content=data.get("content", data.get("content_preview", "")),  # contentを優先、なければcontent_preview
             created_at=datetime.fromisoformat(data.get("processed_at", datetime.now().isoformat()))
         )
         

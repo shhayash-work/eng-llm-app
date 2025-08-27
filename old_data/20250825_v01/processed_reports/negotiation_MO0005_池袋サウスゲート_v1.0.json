@@ -1,0 +1,85 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0005_池袋サウスゲート_v1.0.xlsx",
+  "file_name": "negotiation_MO0005_池袋サウスゲート_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nau置局02\\n1版\\n置局物件交渉経緯報告書\\n45870\\n【基地局情報】 | 【担当者情報】\\nプラン名 | 増設_RRH 3Sector_2GHz | Kエンジ担当者名 | 設計センター 設計2G 工程管理T\\n局番 | IKB-077 | 局名 | 池袋サウスゲート | 元請会社・担当者名 | 株式会社 田中電工 田中太郎\\n物件番号 | X.X.ABCD1...",
+  "report_type": "NEGOTIATION_PROGRESS",
+  "created_at": "2025-08-22T04:14:25.424232",
+  "original_file_mtime": "2025-08-22T04:14:25.424232",
+  "project_id": "MO0005",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0006",
+      "MO0002"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 池袋サウスゲート 場所: 東京都豊島区南池袋1-28-2 局番: IKB-077 Aurora計画: 増設_RRH 3Sector_2GHz 担当者: 設計センター 設計2G 工程管理T",
+      "vector_similarity": 0.9445704123909866,
+      "matched_keywords": [
+        "28",
+        "局名",
+        "ト",
+        "池袋サウスゲ",
+        "RRH",
+        "3Sector",
+        "2GHz",
+        "Aurora計画",
+        "2",
+        "局番",
+        "担当者",
+        "増設",
+        "東京都豊島区南池袋1",
+        "IKB",
+        "場所"
+      ],
+      "reasoning": "ベクトル類似度は0.945と一番高く、完全一致: 局名「池袋サウスゲート」, 所在地「東京都豊島区南池袋1-28-2」, Auroraプラン「増設_RRH 3Sector_2GHz」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "池袋サウスゲート",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "東京都豊島区南池袋1-28-2",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "Auroraプラン",
+          "master_value": "増設_RRH 3Sector_2GHz",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "池袋サウスゲート基地局増設"
+    }
+  },
+  "status_flag": "normal",
+  "risk_level": "低",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [],
+  "urgency_score": 2,
+  "analysis_result": {
+    "summary": "池袋サウスゲートの交渉進捗、オーナーとの基本同意取得完了",
+    "issues": [],
+    "key_points": "基本同意取得,オーナー交渉完了,池袋サウスゲート",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:15:14.122819"
+}

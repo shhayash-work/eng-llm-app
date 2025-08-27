@@ -1,0 +1,83 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Structural-Design/strength_MO0001_高輪ビル東_v1.0.docx",
+  "file_name": "strength_MO0001_高輪ビル東_v1.0.docx",
+  "content_preview": "ビル基地局構造設計概要\\n\\n表:\\n元請施行会社名 | Kエンジニアリング | Kエンジニアリング\\n設計責任者指名 | 構造一級 建太 | 印\\n\\n表:\\n基地局名 | 高輪ビル東 | 局番号 | TKNE-001 | TKNE-001 | TKNE-001\\n建物名称 | 高輪ビル東 | 所在地 | 東京都港区高輪4-1-18 | 東京都港区高輪4-1-18 | 東京都港区高輪4-1-18...",
+  "report_type": "STRUCTURAL_DESIGN",
+  "created_at": "2025-08-23T13:34:36.310389",
+  "original_file_mtime": "2025-08-23T13:34:36.310389",
+  "project_id": "MO0001",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0005",
+      "MO0007"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 高輪ビル東 場所: 東京都港区高輪4-1-18 局番: TKNE-001 Aurora計画: 不明 担当者: 不明",
+      "vector_similarity": 0.9322561424073477,
+      "matched_keywords": [
+        "場所",
+        "局名",
+        "1",
+        "東京都港区高輪4",
+        "高輪ビル東",
+        "001",
+        "Aurora計画",
+        "TKNE",
+        "担当者",
+        "18",
+        "局番"
+      ],
+      "reasoning": "ベクトル類似度は0.932と一番高く、完全一致: 局名「高輪ビル東」, 局番「TKNE-001」, 所在地「東京都港区高輪4-1-18」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "高輪ビル東",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "局番",
+          "master_value": "TKNE-001",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "東京都港区高輪4-1-18",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "高輪ビル東基地局建設"
+    }
+  },
+  "status_flag": "normal",
+  "risk_level": "低",
+  "has_unexpected_values": false,
+  "validation_issues": [
+    "必須項目不足: auRoraプラン名"
+  ],
+  "requires_human_review": false,
+  "analysis_confidence": 0.8,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [],
+  "urgency_score": 1,
+  "analysis_result": {
+    "summary": "高輪ビル東基地局の構造設計概要、詳細な設計情報が記載",
+    "issues": [],
+    "key_points": "構造設計概要,詳細な設計情報",
+    "confidence": 0.8
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.8,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:29:44.091114"
+}

@@ -1,0 +1,174 @@
+{
+  "processed_files": {
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0001_高輪ビル東_v1.0.xlsx": {
+      "file_hash": "2c983fcf2485d30d33781733eb40b458",
+      "processed_at": "2025-08-25T14:00:23.168518",
+      "processing_time": 96.343654,
+      "result_file": "data/processed_reports/estimate_MO0001_高輪ビル東_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0001_高輪ビル東_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0002_新宿センター西_v1.0.xlsx": {
+      "file_hash": "da4a54c926ba4cda350c96fd811f214f",
+      "processed_at": "2025-08-25T14:01:59.773779",
+      "processing_time": 96.604196,
+      "result_file": "data/processed_reports/estimate_MO0002_新宿センター西_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0002_新宿センター西_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0003_神田末広北_v1.0.xlsx": {
+      "file_hash": "2b41a52879807cd43f5e8f0d9788fd3b",
+      "processed_at": "2025-08-25T14:03:39.695109",
+      "processing_time": 99.920597,
+      "result_file": "data/processed_reports/estimate_MO0003_神田末広北_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0003_神田末広北_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0005_池袋サウスゲート_v1.0.xlsx": {
+      "file_hash": "716a64f5e592083bbe5d3c17d2d4b7dc",
+      "processed_at": "2025-08-25T14:05:18.413063",
+      "processing_time": 98.716896,
+      "result_file": "data/processed_reports/estimate_MO0005_池袋サウスゲート_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0005_池袋サウスゲート_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0006_銀座テラス南_v1.0.xlsx": {
+      "file_hash": "9ae0288ae85183214bb244884d064263",
+      "processed_at": "2025-08-25T14:06:55.946733",
+      "processing_time": 97.532931,
+      "result_file": "data/processed_reports/estimate_MO0006_銀座テラス南_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0006_銀座テラス南_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0007_赤坂タワー東_v1.0.xlsx": {
+      "file_hash": "7fefdfb62ba82b8f379d935037887c11",
+      "processed_at": "2025-08-25T14:08:33.475980",
+      "processing_time": 97.528328,
+      "result_file": "data/processed_reports/estimate_MO0007_赤坂タワー東_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0007_赤坂タワー東_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0008_船橋物流センター北_v1.0.xlsx": {
+      "file_hash": "e8c8654217c96ba03df54d6250298ba2",
+      "processed_at": "2025-08-25T14:10:10.673569",
+      "processing_time": 97.196356,
+      "result_file": "data/processed_reports/estimate_MO0008_船橋物流センター北_v1.0.json",
+      "cache_file": "data/processed_reports/estimate_MO0008_船橋物流センター北_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0006_銀座テラス南_v1.0.xlsx": {
+      "file_hash": "0715d85b09d304e8bbfaaf781547d166",
+      "processed_at": "2025-08-25T14:11:54.555633",
+      "processing_time": 103.881296,
+      "result_file": "data/processed_reports/negotiation_MO0006_銀座テラス南_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0006_銀座テラス南_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0007_赤坂タワー東_v1.0.xlsx": {
+      "file_hash": "0b0f0b7c4a70eb38bb1610f6f1633ffd",
+      "processed_at": "2025-08-25T14:13:33.013230",
+      "processing_time": 98.456577,
+      "result_file": "data/processed_reports/negotiation_MO0007_赤坂タワー東_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0007_赤坂タワー東_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0005_池袋サウスゲート_v1.0.xlsx": {
+      "file_hash": "718d17c3348a81d80b4477362aacc012",
+      "processed_at": "2025-08-25T14:15:14.123782",
+      "processing_time": 101.109674,
+      "result_file": "data/processed_reports/negotiation_MO0005_池袋サウスゲート_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0005_池袋サウスゲート_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0003_神田末広北_v1.0.xlsx": {
+      "file_hash": "c1b055361336b9e6580c4c7e2e81f34f",
+      "processed_at": "2025-08-25T14:17:00.358790",
+      "processing_time": 106.234046,
+      "result_file": "data/processed_reports/negotiation_MO0003_神田末広北_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0003_神田末広北_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0002_新宿センター西_v1.0.xlsx": {
+      "file_hash": "a90be222bc03dccd410afa3201645261",
+      "processed_at": "2025-08-25T14:19:06.196661",
+      "processing_time": 125.836927,
+      "result_file": "data/processed_reports/negotiation_MO0002_新宿センター西_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0002_新宿センター西_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0001_高輪ビル東_v1.0.xlsx": {
+      "file_hash": "9df12d8a3f3256bd820dc479b7c1831c",
+      "processed_at": "2025-08-25T14:20:51.759471",
+      "processing_time": 105.561757,
+      "result_file": "data/processed_reports/negotiation_MO0001_高輪ビル東_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0001_高輪ビル東_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0002_新宿センター西_v1.1.xlsx": {
+      "file_hash": "a54539752ef768e36f6d2ebd15ce8d75",
+      "processed_at": "2025-08-25T14:22:38.332975",
+      "processing_time": 106.572575,
+      "result_file": "data/processed_reports/estimate_MO0002_新宿センター西_v1.1.json",
+      "cache_file": "data/processed_reports/estimate_MO0002_新宿センター西_v1.1.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0005_池袋サウスゲート_v1.1.xlsx": {
+      "file_hash": "ca547170666439a203d6f98ea2fc5f9c",
+      "processed_at": "2025-08-25T14:24:36.317832",
+      "processing_time": 117.983378,
+      "result_file": "data/processed_reports/estimate_MO0005_池袋サウスゲート_v1.1.json",
+      "cache_file": "data/processed_reports/estimate_MO0005_池袋サウスゲート_v1.1.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0006_銀座テラス南_v1.1.xlsx": {
+      "file_hash": "2777186a2d977e77f2a00e5839ebd59d",
+      "processed_at": "2025-08-25T14:26:29.002024",
+      "processing_time": 112.683159,
+      "result_file": "data/processed_reports/estimate_MO0006_銀座テラス南_v1.1.json",
+      "cache_file": "data/processed_reports/estimate_MO0006_銀座テラス南_v1.1.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0007_赤坂タワー東_v1.1.xlsx": {
+      "file_hash": "ff58f6180be1bc79b561d89ba1d14124",
+      "processed_at": "2025-08-25T14:28:08.292573",
+      "processing_time": 99.289509,
+      "result_file": "data/processed_reports/estimate_MO0007_赤坂タワー東_v1.1.json",
+      "cache_file": "data/processed_reports/estimate_MO0007_赤坂タワー東_v1.1.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Structural-Design/strength_MO0001_高輪ビル東_v1.0.docx": {
+      "file_hash": "da7660fa584fec1a3df61430eebffa44",
+      "processed_at": "2025-08-25T14:29:44.091965",
+      "processing_time": 95.798234,
+      "result_file": "data/processed_reports/strength_MO0001_高輪ビル東_v1.0.json",
+      "cache_file": "data/processed_reports/strength_MO0001_高輪ビル東_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Structural-Design/strength_MO0003_神田末広北_v1.0.docx": {
+      "file_hash": "2bb40f8444bffbd5b59476420062a9fc",
+      "processed_at": "2025-08-25T14:31:19.179043",
+      "processing_time": 95.085996,
+      "result_file": "data/processed_reports/strength_MO0003_神田末広北_v1.0.json",
+      "cache_file": "data/processed_reports/strength_MO0003_神田末広北_v1.0.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Construction-Estimate/estimate_MO0008_船橋物流センター北_v1.1.xlsx": {
+      "file_hash": "e34c5e9d83649f183fdb9196801537be",
+      "processed_at": "2025-08-25T14:33:07.224067",
+      "processing_time": 108.043816,
+      "result_file": "data/processed_reports/estimate_MO0008_船橋物流センター北_v1.1.json",
+      "cache_file": "data/processed_reports/estimate_MO0008_船橋物流センター北_v1.1.cache",
+      "status": "success"
+    },
+    "data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0008_船橋物流センター北_v1.0.xlsx": {
+      "file_hash": "56866df058ac4a8bdd9efb52a9de8bd6",
+      "processed_at": "2025-08-25T14:34:54.473896",
+      "processing_time": 107.248413,
+      "result_file": "data/processed_reports/negotiation_MO0008_船橋物流センター北_v1.0.json",
+      "cache_file": "data/processed_reports/negotiation_MO0008_船橋物流センター北_v1.0.cache",
+      "status": "success"
+    }
+  },
+  "last_updated": "2025-08-25T14:34:54.473960",
+  "version": "1.0"
+}

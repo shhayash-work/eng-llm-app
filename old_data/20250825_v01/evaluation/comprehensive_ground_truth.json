@@ -1,0 +1,357 @@
+{
+  "metadata": {
+    "created_at": "2024-01-20T10:00:00Z",
+    "version": "2.1",
+    "description": "LLM機能評価用の包括的正解データ",
+    "total_files": 21,
+    "notes": [
+      "Updated based on comprehensive report analysis",
+      "v1.0 Construction Estimates: mostly normal status",
+      "v1.1 Construction Estimates: delays and stops present",
+      "Negotiation Progress Reports: mixed status (normal/delay/stop)",
+      "MO0008 files: classified as critical issues requiring human review"
+    ]
+  },
+  "evaluation_data": {
+    "estimate_MO0005_池袋サウスゲート_v1.1": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0005",
+      "expected_status_flag": "minor_delay",
+      "expected_risk_level": "中",
+      "expected_delay_reasons": [
+        "オーナー交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0005_池袋サウスゲート_v1.1.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0006_銀座テラス南_v1.1": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0006",
+      "expected_status_flag": "major_delay",
+      "expected_risk_level": "高",
+      "expected_delay_reasons": [
+        "オーナー交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0006_銀座テラス南_v1.1.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0007_赤坂タワー東_v1.1": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0007",
+      "expected_status_flag": "minor_delay",
+      "expected_risk_level": "中",
+      "expected_delay_reasons": [
+        "回線不具合"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0007_赤坂タワー東_v1.1.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0007_赤坂タワー東_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0007",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0007_赤坂タワー東_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0008_船橋物流センター北_v1.1": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0008",
+      "expected_status_flag": "stopped",
+      "expected_risk_level": "高",
+      "expected_delay_reasons": [
+        "重大問題（要人的確認）"
+      ],
+      "expected_requires_human_review": true,
+      "notes": "Updated from analysis of estimate_MO0008_船橋物流センター北_v1.1.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "negotiation_MO0003_神田末広北_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+        "オーナー交渉難航",
+        "近隣交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0003_神田末広北_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "negotiation_MO0005_池袋サウスゲート_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0005_池袋サウスゲート_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "negotiation_MO0007_赤坂タワー東_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0007_赤坂タワー東_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "negotiation_MO0001_高輪ビル東_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0001_高輪ビル東_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "estimate_MO0001_高輪ビル東_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0001",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0001_高輪ビル東_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "negotiation_MO0002_新宿センター西_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "minor_delay",
+      "expected_risk_level": "中",
+      "expected_delay_reasons": [
+        "近隣交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0002_新宿センター西_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "estimate_MO0002_新宿センター西_v1.1": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0002",
+      "expected_status_flag": "minor_delay",
+      "expected_risk_level": "中",
+      "expected_delay_reasons": [
+        "他事業者交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0002_新宿センター西_v1.1.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0003_神田末広北_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0003",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0003_神田末広北_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0002_新宿センター西_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0002",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0002_新宿センター西_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "strength_MO0001_高輪ビル東_v1.0": {
+      "expected_report_type": "STRUCTURAL_DESIGN",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Generated from strength_MO0001_高輪ビル東_v1.0.docx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Content does not contain explicit project ID"
+      }
+    },
+    "estimate_MO0006_銀座テラス南_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0006",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0006_銀座テラス南_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0005_池袋サウスゲート_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0005",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0005_池袋サウスゲート_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "estimate_MO0008_船橋物流センター北_v1.0": {
+      "expected_report_type": "CONSTRUCTION_ESTIMATE",
+      "expected_project_id": "MO0008",
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of estimate_MO0008_船橋物流センター北_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "easy",
+        "reason": "Project ID available in content"
+      }
+    },
+    "strength_MO0003_神田末広北_v1.0": {
+      "expected_report_type": "STRUCTURAL_DESIGN",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Generated from strength_MO0003_神田末広北_v1.0.docx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Content does not contain explicit project ID"
+      }
+    },
+    "negotiation_MO0006_銀座テラス南_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "normal",
+      "expected_risk_level": "低",
+      "expected_delay_reasons": [
+        "オーナー交渉難航"
+      ],
+      "expected_requires_human_review": false,
+      "notes": "Updated from analysis of negotiation_MO0006_銀座テラス南_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    },
+    "negotiation_MO0008_船橋物流センター北_v1.0": {
+      "expected_report_type": "NEGOTIATION_PROGRESS",
+      "expected_project_id": null,
+      "expected_status_flag": "stopped",
+      "expected_risk_level": "高",
+      "expected_delay_reasons": [
+        "重大問題（要人的確認）"
+      ],
+      "expected_requires_human_review": true,
+      "notes": "Updated from analysis of negotiation_MO0008_船橋物流センター北_v1.0.xlsx",
+      "extraction_difficulty": {
+        "project_id": "difficult",
+        "reason": "Project ID not available in content"
+      }
+    }
+  },
+  "classification_labels": {
+    "report_types": [
+      "CONSTRUCTION_ESTIMATE",
+      "NEGOTIATION_PROGRESS",
+      "STRUCTURAL_DESIGN"
+    ],
+    "status_flags": [
+      "normal",
+      "minor_delay",
+      "major_delay",
+      "stopped"
+    ],
+    "risk_levels": [
+      "低",
+      "中",
+      "高"
+    ],
+    "delay_reasons": [
+      "工程ミス",
+      "要件漏れ",
+      "無線機不具合",
+      "物件不具合",
+      "設計不足",
+      "電源遅延",
+      "回線不具合",
+      "免許不具合",
+      "法規制",
+      "産廃発生",
+      "オーナー交渉難航",
+      "近隣交渉難航",
+      "他事業者交渉難航",
+      "親局不具合",
+      "イレギュラ発生",
+      "重大問題（要人的確認）"
+    ]
+  }
+}

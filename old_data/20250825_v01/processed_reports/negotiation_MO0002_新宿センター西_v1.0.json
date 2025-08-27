@@ -1,0 +1,102 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0002_新宿センター西_v1.0.xlsx",
+  "file_name": "negotiation_MO0002_新宿センター西_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nau置局02\\n1版\\n置局物件交渉経緯報告書\\n45870\\n【基地局情報】 | 【担当者情報】\\nプラン名 | 新設_5G屋上_28GHz試行 | Kエンジ担当者名\\n局番 | SJK-045 | 局名 | 新宿センター西 | 元請会社・担当者名\\n物件番号 | X.X.ABCD12 | 分類 | 新設 | 局タイプ | 鉄塔 | 置局会社・担当者名\\n無線機設置...",
+  "report_type": "NEGOTIATION_PROGRESS",
+  "created_at": "2025-08-22T04:14:25.772234",
+  "original_file_mtime": "2025-08-22T04:14:25.772234",
+  "project_id": "MO0002",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0006",
+      "MO0005"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 新宿センター西 場所: 東京都新宿区西新宿2-8-1 局番: SJK-045 Aurora計画: 新設_5G屋上_28GHz試行 担当者: Kエンジ担当者名",
+      "vector_similarity": 0.9736563142253891,
+      "matched_keywords": [
+        "場所",
+        "SJK",
+        "東京都新宿区西新宿2",
+        "局名",
+        "1",
+        "新宿センタ",
+        "8",
+        "Aurora計画",
+        "28GHz試行",
+        "新設",
+        "担当者",
+        "5G屋上",
+        "西",
+        "局番"
+      ],
+      "reasoning": "ベクトル類似度は0.974と一番高く、完全一致: 局名「新宿センター西」, 所在地「東京都新宿区西新宿2-8-1」, Auroraプラン「新設_5G屋上_28GHz試行」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "新宿センター西",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "東京都新宿区西新宿2-8-1",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "Auroraプラン",
+          "master_value": "新設_5G屋上_28GHz試行",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "新宿センター西基地局建設"
+    }
+  },
+  "status_flag": "minor_delay",
+  "risk_level": "中",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [
+    {
+      "category": "オーナー交渉難航",
+      "subcategory": "基本同意に難航（口頭同意）",
+      "description": "オーナーとの交渉が難航しており、基本同意が困難",
+      "confidence": 0.9,
+      "evidence": "オーナーとの交渉が難航していると明記"
+    },
+    {
+      "category": "近隣交渉難航",
+      "subcategory": "近隣住民の反対意見",
+      "description": "近隣住民からの反対意見もあり、リスクが高まっています。",
+      "confidence": 0.9,
+      "evidence": "近隣住民からの反対意見もあり、リスクが高まっていると明記"
+    }
+  ],
+  "urgency_score": 6,
+  "analysis_result": {
+    "summary": "新宿センター西基地局の交渉進捗、オーナーとの交渉難航と近隣住民の反対意見によりリスクが高まっている",
+    "issues": [
+      "オーナー交渉難航",
+      "近隣住民の反対意見"
+    ],
+    "key_points": "オーナー交渉難航,近隣住民の反対意見,基本同意段階",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:19:06.195692"
+}

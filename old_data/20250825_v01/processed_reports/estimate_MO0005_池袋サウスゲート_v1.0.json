@@ -1,0 +1,42 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Construction-Estimate/estimate_MO0005_池袋サウスゲート_v1.0.xlsx",
+  "file_name": "estimate_MO0005_池袋サウスゲート_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nパッケージ化見積書 | 併設工事 | 全国版 | 東京部 | Ver.TTU-GL01-01\\n（併設鉄塔・柱グローバル化工事） | お取引先様使用欄 | KLKKLLA854134\\n見積区分 | 見積版数 | 発行日 | 2025-07-01 00:00:00\\nauRoraプラン名 | 増設_RRH 3Sector_2GHz | パッケージ化積算 | 1版\\n局...",
+  "report_type": "CONSTRUCTION_ESTIMATE",
+  "created_at": "2025-08-22T04:14:00.432080",
+  "original_file_mtime": "2025-08-22T04:14:00.432080",
+  "project_id": "MO0005",
+  "project_mapping_info": {
+    "confidence_score": 0.9,
+    "matching_method": "llm_direct",
+    "alternative_candidates": [],
+    "extracted_info": {
+      "llm_id": "MO0005",
+      "llm_confidence": 0.9
+    }
+  },
+  "status_flag": "normal",
+  "risk_level": "低",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [],
+  "urgency_score": 2,
+  "analysis_result": {
+    "summary": "池袋サウスゲートのパッケージ化見積書、併設鉄塔・柱グローバル化工事",
+    "issues": [],
+    "key_points": "パッケージ化見積書,併設鉄塔・柱グローバル化工事,予定工期設定",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:05:18.412379"
+}

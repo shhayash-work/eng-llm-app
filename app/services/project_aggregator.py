@@ -221,31 +221,46 @@ class ProjectAggregator:
             return {
                 'total_projects': 0,
                 'stopped_count': 0,
-                'high_risk_count': 0,
+                'major_delay_count': 0,
+                'minor_delay_count': 0,
+                'unknown_count': 0,
                 'normal_count': 0,
+                'high_risk_count': 0,
                 'overdue_reports_count': 0
             }
         
-        # 現在の状況ベースでカウント
+        # 現在の状況ベースでカウント（実際の報告書データから算出）
         stopped_count = sum(1 for p in projects if p.current_status == StatusFlag.STOPPED)
         major_delay_count = sum(1 for p in projects if p.current_status == StatusFlag.MAJOR_DELAY)
         minor_delay_count = sum(1 for p in projects if p.current_status == StatusFlag.MINOR_DELAY)
-        normal_count = sum(1 for p in projects if p.current_status == StatusFlag.NORMAL)
+        
+        # 不明工程数：ステータスがNoneまたは明確でない工程
+        unknown_count = sum(1 for p in projects if (
+            p.current_status is None or 
+            (hasattr(p, 'project_id') and (not p.project_id or p.project_id == '不明')) or
+            (hasattr(p, 'total_reports') and p.total_reports == 0)
+        ))
+        
+        # 順調工程数：全工程数 - 停止 - 重大遅延 - 軽微遅延 - 不明
+        normal_count = max(0, total_projects - stopped_count - major_delay_count - minor_delay_count - unknown_count)
         
         return {
             'total_projects': total_projects,
             'stopped_count': stopped_count,
             'major_delay_count': major_delay_count,
             'minor_delay_count': minor_delay_count,
-            'normal_count': normal_count,
+            'unknown_count': unknown_count,
+            'normal_count': normal_count,  # 自動計算された順調工程数
             # 分数表示用
             'stopped_fraction': f"{stopped_count}/{total_projects}",
             'major_delay_fraction': f"{major_delay_count}/{total_projects}",
             'minor_delay_fraction': f"{minor_delay_count}/{total_projects}",
+            'unknown_fraction': f"{unknown_count}/{total_projects}",
             'normal_fraction': f"{normal_count}/{total_projects}",
             # パーセンテージ
             'stopped_percentage': (stopped_count / total_projects) * 100,
             'major_delay_percentage': (major_delay_count / total_projects) * 100,
             'minor_delay_percentage': (minor_delay_count / total_projects) * 100,
+            'unknown_percentage': (unknown_count / total_projects) * 100,
             'normal_percentage': (normal_count / total_projects) * 100
         }

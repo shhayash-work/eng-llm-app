@@ -1,0 +1,92 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Negotiation-Progress-Report/negotiation_MO0007_赤坂タワー東_v1.0.xlsx",
+  "file_name": "negotiation_MO0007_赤坂タワー東_v1.0.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nau置局02\\n1版\\n置局物件交渉経緯報告書\\n45881\\n【基地局情報】 | 【担当者情報】\\nプラン名 | 増設_RRH 2Sector_2GHz | Kエンジ担当者名 | 設計センター 設計2G 工程管理T\\n局番 | AKS-207 | 局名 | 赤坂タワー東 | 元請会社・担当者名 | 株式会社 田中電工 田中太郎\\n物件番号 | X.X.ABCD12 ...",
+  "report_type": "NEGOTIATION_PROGRESS",
+  "created_at": "2025-08-22T04:14:25.240231",
+  "original_file_mtime": "2025-08-22T04:14:25.240231",
+  "project_id": "MO0007",
+  "project_mapping_info": {
+    "confidence_score": 0.95,
+    "matching_method": "vector_search",
+    "alternative_candidates": [
+      "MO0005",
+      "MO0002"
+    ],
+    "extracted_info": {
+      "query_text": "局名: 赤坂タワー東 場所: 東京都港区赤坂5-5-8 局番: AKS-207 Aurora計画: 増設_RRH 2Sector_2GHz 担当者: 不明",
+      "vector_similarity": 0.9726017412922974,
+      "matched_keywords": [
+        "場所",
+        "AKS",
+        "局名",
+        "5",
+        "東京都港区赤坂5",
+        "8",
+        "Aurora計画",
+        "RRH",
+        "2Sector",
+        "東",
+        "2GHz",
+        "207",
+        "担当者",
+        "増設",
+        "赤坂タワ",
+        "局番"
+      ],
+      "reasoning": "ベクトル類似度は0.973と一番高く、完全一致: 局名「赤坂タワー東」, 局番「AKS-207」, 所在地「東京都港区赤坂5-5-8」, Auroraプラン「増設_RRH 2Sector_2GHz」が一致／類似しているためです",
+      "matched_elements": [
+        {
+          "type": "局名",
+          "master_value": "赤坂タワー東",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "局番",
+          "master_value": "AKS-207",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "所在地",
+          "master_value": "東京都港区赤坂5-5-8",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        },
+        {
+          "type": "Auroraプラン",
+          "master_value": "増設_RRH 2Sector_2GHz",
+          "match_type": "完全一致",
+          "similarity": 1.0
+        }
+      ],
+      "fuzzy_matches": [],
+      "project_name": "赤坂タワー東基地局増設"
+    }
+  },
+  "status_flag": "normal",
+  "risk_level": "低",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [],
+  "urgency_score": 2,
+  "analysis_result": {
+    "summary": "赤坂タワー東での置局交渉状況、オーナーとの基本同意取得済み",
+    "issues": [],
+    "key_points": "赤坂タワー東,置局交渉状況,基本同意取得済み",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:13:33.012401"
+}

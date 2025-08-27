@@ -1,0 +1,52 @@
+{
+  "file_path": "/home/share/eng-llm-app/data/sharepoint_docs/Construction-Estimate/estimate_MO0002_新宿センター西_v1.1.xlsx",
+  "file_name": "estimate_MO0002_新宿センター西_v1.1.xlsx",
+  "content_preview": "\\nシート: Sheet1\\nパッケージ化見積書 | 併設工事 | 全国版 | 東京部 | Ver.SDH-GL01-02\\n（併設鉄塔・柱グローバル化工事） | お取引先様使用欄 | FASADDUI111111\\n見積区分 | 見積版数 | 発行日 | 2025-08-15 00:00:00\\nauRoraプラン名 | 新設_5G屋上_28GHz試行 | パッケージ化積算 | 2版\\n局名 |...",
+  "report_type": "CONSTRUCTION_ESTIMATE",
+  "created_at": "2025-08-22T04:15:02.300456",
+  "original_file_mtime": "2025-08-22T04:15:02.300456",
+  "project_id": "MO0002",
+  "project_mapping_info": {
+    "confidence_score": 0.9,
+    "matching_method": "llm_direct",
+    "alternative_candidates": [],
+    "extracted_info": {
+      "llm_id": "MO0002",
+      "llm_confidence": 0.9
+    }
+  },
+  "status_flag": "minor_delay",
+  "risk_level": "中",
+  "has_unexpected_values": false,
+  "validation_issues": [],
+  "requires_human_review": false,
+  "analysis_confidence": 0.85,
+  "current_construction_phase": null,
+  "construction_progress": null,
+  "delay_reasons": [
+    {
+      "category": "要件漏れ",
+      "subcategory": "要件変更",
+      "description": "設備干渉の不許可に伴う設計見直しのため、工期を変更",
+      "confidence": 0.9,
+      "evidence": "備考: 設備干渉の不許可に伴う設計見直しのため、工期を【着工 2025/07/20／竣工 2025/9/10】から【着工 2025/08/19／竣工 2025/11/09】へ変更と明記"
+    }
+  ],
+  "urgency_score": 4,
+  "analysis_result": {
+    "summary": "新宿センター西基地局のパッケージ化見積書、工期変更あり",
+    "issues": [
+      "工期変更"
+    ],
+    "key_points": "パッケージ化見積書,工期変更,新宿センター西基地局",
+    "confidence": 0.85
+  },
+  "anomaly_detection": {
+    "is_anomaly": false,
+    "anomaly_description": "LLMによる分析困難度: 正常",
+    "confidence": 0.85,
+    "suggested_action": "自動分析完了",
+    "requires_human_review": false
+  },
+  "processed_at": "2025-08-25T14:22:38.331813"
+}

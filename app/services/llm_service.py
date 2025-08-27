@@ -596,16 +596,17 @@ class LLMService:
             qa_prompt = f"""
 以下の文脈情報を基に、質問に回答してください。
 
-【文脈情報】
+文脈情報:
 {context}
 
-【質問】
+質問:
 {question}
 
-【回答指示】
+回答指示:
 - 文脈情報に基づいて具体的に回答してください
 - 情報が不足している場合は、その旨を明記してください
 - 推測ではなく、文脈に記載されている事実を基に回答してください
+- 記号（#、*、**など）は使用せず、シンプルなテキストで回答してください
 """
             
             # プロバイダー別の処理
@@ -701,16 +702,14 @@ class LLMService:
             "status": "connected" if self.model else "disconnected"
         }
 
-# Streamlit用シングルトン化関数
-@st.cache_resource
+# Streamlit用LLMService取得関数（キャッシュなし）
 def get_llm_service() -> LLMService:
     """
-    シングルトンLLMServiceインスタンスを取得
+    LLMServiceインスタンスを取得
     
-    初回実行時にLLMServiceを初期化し、以降はキャッシュされたインスタンスを返す。
-    これにより2回目以降のアクセスが高速化される。
+    毎回新しいLLMServiceインスタンスを作成し、キャッシュによる同一回答問題を回避する。
     """
-    logger.info("🔧 Initializing singleton LLMService...")
+    logger.info("🔧 Initializing new LLMService instance...")
     service = LLMService()
-    logger.info("✅ Singleton LLMService initialized and cached")
+    logger.info("✅ New LLMService instance initialized")
     return service

@@ -9,7 +9,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import logging
 
-from app.models.report import DocumentReport, FlagType
+from app.models.report import DocumentReport
 from app.services.llm_service import get_llm_service
 from app.services.vector_store import VectorStoreService
 import json
@@ -23,9 +23,12 @@ def load_context_analysis() -> Dict[str, Any]:
     if context_file.exists():
         try:
             with open(context_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                logger.info(f"📊 統合分析結果読み込み: {len(data)}工程の分析結果")
+                return data
         except Exception as e:
             st.warning(f"統合分析結果の読み込みに失敗しました: {e}")
+            logger.error(f"統合分析結果読み込みエラー: {e}")
     return {}
 
 def render_analysis_panel(reports: List[DocumentReport], audit_type: str = "工程"):
@@ -90,7 +93,7 @@ def render_qa_interface(reports: List[DocumentReport], use_streaming: bool = Tru
     
     if ask_button:
         if question:
-            st.write("**🤖 RAGシステムによるAI回答:**")
+            st.write("**RAGシステムによるAI回答:**")
             
             # RAGシステムの動作可視化
             with st.spinner("🔍 関連文書を検索中..."):
@@ -200,12 +203,12 @@ def process_qa_question(question: str, reports: List[DocumentReport], audit_type
         return f"申し訳ございませんが、回答の生成中にエラーが発生しました: {str(e)}"
 
 def _process_report_audit_question(question: str, vector_store: VectorStoreService) -> str:
-    """報告書チェック用の質問処理：報告書要約をベクトル検索"""
+    """報告書チェック用の質問処理：報告書要約をベクトル検索して上位5件を取得"""
     try:
         # 報告書要約の出力結果を検索（統合分析結果を除外）
         search_results = vector_store.search_similar_documents(
             query=question,
-            n_results=8
+            n_results=10  # 多めに取得してフィルタリング
         )
         
         # 統合分析結果を除外し、報告書要約のみを対象とする
@@ -214,24 +217,13 @@ def _process_report_audit_question(question: str, vector_store: VectorStoreServi
             if result.get('metadata', {}).get('type') != 'context_analysis'
         ]
         
-        # まず閾値以上のものを探す
-        high_similarity_results = []
-        for result in filtered_results:
-            distance = result.get('distance', 0.0)
-            similarity_score = 1.0 / (1.0 + distance / 100.0)
-            if similarity_score > 0.1:
-                high_similarity_results.append((result, similarity_score))
-        
-        # 閾値以上のものがない場合は上位3件を使用
-        if not high_similarity_results:
-            high_similarity_results = []
-            for result in filtered_results[:3]:  # 上位3件
-                distance = result.get('distance', 0.0)
-                similarity_score = 1.0 / (1.0 + distance / 100.0)
-                high_similarity_results.append((result, similarity_score))
+        # 上位5件を取得（類似度閾値は使わない）
+        top_5_results = filtered_results[:5]
         
         context_parts = []
-        for i, (result, similarity_score) in enumerate(high_similarity_results):
+        for i, result in enumerate(top_5_results):
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
             metadata = result.get('metadata', {})
             content = result.get('content', '')
             
@@ -252,15 +244,16 @@ def _process_report_audit_question(question: str, vector_store: VectorStoreServi
         llm_service = get_llm_service()
         answer = llm_service.answer_question(question, context)
         
+        logger.info(f"📋 報告書チェック質問処理: {len(top_5_results)}件の報告書要約を使用")
         return answer
         
     except Exception as e:
         return f"報告書チェックの質問処理でエラーが発生しました: {str(e)}"
 
 def _process_project_audit_question(question: str, reports: List[DocumentReport], vector_store: VectorStoreService) -> str:
-    """工程チェック用の質問処理：統合分析結果をベクトル検索"""
+    """工程チェック用の質問処理：統合分析結果をベクトル検索して上位5件を取得"""
     try:
-        # 🔍 Step 1: 統合分析結果から関連工程を検索
+        # 🔍 Step 1: 統合分析結果から関連工程を検索（上位5件）
         context_results = vector_store.search_similar_documents(
             query=question,
             n_results=5,
@@ -271,27 +264,29 @@ def _process_project_audit_question(question: str, reports: List[DocumentReport]
             # フォールバック: 通常の報告書検索
             return _fallback_search(question, reports, vector_store)
         
-        # 🎯 Step 2: 関連工程IDを特定
+        # 🎯 Step 2: 関連工程IDを特定（上位5件すべて使用）
         related_project_ids = []
         context_parts = []
         
-        # まず閾値以上のものを探す
-        high_similarity_results = []
-        for result in context_results:
+        # 統合分析結果のサマリを追加
+        context_analysis = load_context_analysis()
+        if context_analysis:
+            context_parts.append("=== 全工程統合分析サマリ ===")
+            for project_id, analysis in list(context_analysis.items())[:3]:  # 上位3工程のサマリ
+                context_parts.append(
+                    f"工程ID: {project_id}\\n"
+                    f"総合ステータス: {analysis.get('overall_status', '不明')}\\n"
+                    f"総合リスク: {analysis.get('overall_risk', '不明')}\\n"
+                    f"現在工程: {analysis.get('current_phase', '不明')}\\n"
+                    f"進捗傾向: {analysis.get('progress_trend', '不明')}\\n"
+                    f"分析サマリ: {analysis.get('analysis_summary', '')}\\n"
+                )
+            context_parts.append("")
+        
+        # ベクトル検索結果から関連工程を特定
+        for i, result in enumerate(context_results):
             distance = result.get('distance', 0.0)
             similarity_score = 1.0 / (1.0 + distance / 100.0)
-            if similarity_score > 0.1:
-                high_similarity_results.append((result, similarity_score))
-        
-        # 閾値以上のものがない場合は上位3件を使用
-        if not high_similarity_results:
-            high_similarity_results = []
-            for result in context_results[:3]:  # 上位3件
-                distance = result.get('distance', 0.0)
-                similarity_score = 1.0 / (1.0 + distance / 100.0)
-                high_similarity_results.append((result, similarity_score))
-        
-        for result, similarity_score in high_similarity_results:
             metadata = result.get('metadata', {})
             project_id = metadata.get('project_id')
             
@@ -300,7 +295,7 @@ def _process_project_audit_question(question: str, reports: List[DocumentReport]
                 
                 # 統合分析結果をコンテキストに追加
                 context_parts.append(
-                    f"=== 工程統合分析結果 ({project_id}) ===\\n"
+                    f"=== 関連工程統合分析結果{i+1} ({project_id}) ===\\n"
                     f"類似度: {similarity_score:.3f}\\n"
                     f"総合ステータス: {metadata.get('overall_status', '不明')}\\n"
                     f"総合リスク: {metadata.get('overall_risk', '不明')}\\n"
@@ -309,54 +304,77 @@ def _process_project_audit_question(question: str, reports: List[DocumentReport]
                     f"内容: {result.get('content', '')[:300]}...\\n"
                 )
         
-        # 📄 Step 3: 関連工程の全報告書を取得
-        reports_by_project = _load_all_processed_reports()
-        
-        for project_id in related_project_ids[:3]:  # 上位3工程
-            if project_id in reports_by_project:
-                project_reports = reports_by_project[project_id]
-                context_parts.append(f"\\n=== 工程 {project_id} の関連報告書 ===")
-                
-                for i, report in enumerate(project_reports[:3]):  # 工程あたり上位3件
-                    context_parts.append(
-                        f"報告書{i+1}: {report.get('file_name', '不明')}\\n"
-                        f"要約: {report.get('analysis_result', {}).get('summary', '')}\\n"
-                        f"リスクレベル: {report.get('risk_level', '不明')}\\n"
-                        f"問題: {', '.join(report.get('analysis_result', {}).get('issues', []))}\\n"
-                    )
+        # 📄 Step 3: 関連工程の報告書要約をすべて取得
+        if related_project_ids:
+            reports_by_project = _load_specific_reports_by_project_ids(related_project_ids)
+            
+            for project_id in related_project_ids:
+                if project_id in reports_by_project:
+                    project_reports = reports_by_project[project_id]
+                    context_parts.append(f"\\n=== 工程 {project_id} の関連報告書要約 ===")
+                    
+                    for i, report in enumerate(project_reports):  # 工程の全報告書
+                        context_parts.append(
+                            f"報告書{i+1}: {report.get('file_name', '不明')}\\n"
+                            f"要約: {report.get('analysis_result', {}).get('summary', '')}\\n"
+                            f"リスクレベル: {report.get('risk_level', '不明')}\\n"
+                            f"ステータス: {report.get('status_flag', '不明')}\\n"
+                            f"問題: {', '.join(report.get('analysis_result', {}).get('issues', []))}\\n"
+                        )
         
         # 🤖 Step 4: LLMに質問
         context = "\\n".join(context_parts)
         llm_service = get_llm_service()
         answer = llm_service.answer_question(question, context)
         
+        logger.info(f"🏗️ 工程チェック質問処理: {len(related_project_ids)}工程、{sum(len(reports_by_project.get(pid, [])) for pid in related_project_ids)}件の報告書要約を使用")
         return answer
         
     except Exception as e:
         return f"工程チェックの質問処理でエラーが発生しました: {str(e)}"
 
-def _load_all_processed_reports() -> Dict[str, List[Dict[str, Any]]]:
-    """処理済み報告書を工程ID別に読み込み"""
+def _load_specific_reports_by_project_ids(project_ids: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+    """指定された工程IDの報告書のみを読み込み"""
     reports_by_project = {}
     processed_dir = Path("data/processed_reports")
     
     if not processed_dir.exists():
         return {}
     
-    for report_file in processed_dir.glob("*.json"):
+    # インデックスファイルから処理済みファイル一覧を取得
+    index_file = processed_dir / "index.json"
+    if index_file.exists():
         try:
-            with open(report_file, 'r', encoding='utf-8') as f:
-                report_data = json.load(f)
+            with open(index_file, 'r', encoding='utf-8') as f:
+                index_data = json.load(f)
             
-            project_id = report_data.get('project_id')
-            if project_id:
-                if project_id not in reports_by_project:
-                    reports_by_project[project_id] = []
-                reports_by_project[project_id].append(report_data)
-                
+            # 成功した処理済みファイルのみを対象とする
+            successful_files = {k: v for k, v in index_data.get("processed_files", {}).items() 
+                              if v.get("status") == "success"}
+            
+            for file_key, file_info in successful_files.items():
+                json_file_path = file_info.get("result_file")
+                if json_file_path:
+                    json_file = Path(json_file_path)
+                    if json_file.exists():
+                        try:
+                            with open(json_file, 'r', encoding='utf-8') as f:
+                                report_data = json.load(f)
+                            
+                            project_id = report_data.get('project_id')
+                            # 指定された工程IDの報告書のみを読み込み
+                            if project_id and project_id in project_ids:
+                                if project_id not in reports_by_project:
+                                    reports_by_project[project_id] = []
+                                reports_by_project[project_id].append(report_data)
+                                
+                        except Exception as e:
+                            logger.warning(f"報告書読み込みエラー: {json_file.name} - {e}")
+            
         except Exception as e:
-            logger.warning(f"報告書読み込みエラー: {report_file.name} - {e}")
+            logger.error(f"インデックスファイル読み込みエラー: {e}")
     
+    logger.info(f"📊 指定工程の報告書読み込み: {len(reports_by_project)}工程、{sum(len(reports) for reports in reports_by_project.values())}件の報告書")
     return reports_by_project
 
 def _fallback_search(question: str, reports: List[DocumentReport], vector_store: VectorStoreService) -> str:
@@ -374,24 +392,13 @@ def _fallback_search(question: str, reports: List[DocumentReport], vector_store:
             if result.get('metadata', {}).get('type') != 'context_analysis'
         ]
         
-        # まず閾値以上のものを探す
-        high_similarity_results = []
-        for result in filtered_results:
-            distance = result.get('distance', 0.0)
-            similarity_score = 1.0 / (1.0 + distance / 100.0)
-            if similarity_score > 0.1:
-                high_similarity_results.append((result, similarity_score))
-        
-        # 閾値以上のものがない場合は上位3件を使用
-        if not high_similarity_results:
-            high_similarity_results = []
-            for result in filtered_results[:3]:  # 上位3件
-                distance = result.get('distance', 0.0)
-                similarity_score = 1.0 / (1.0 + distance / 100.0)
-                high_similarity_results.append((result, similarity_score))
+        # 上位5件を取得（類似度閾値は使わない）
+        top_5_results = filtered_results[:5]
         
         context_parts = []
-        for i, (result, similarity_score) in enumerate(high_similarity_results):
+        for i, result in enumerate(top_5_results):
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
             metadata = result.get('metadata', {})
             content = result.get('content', '')
             
@@ -415,9 +422,15 @@ def _fallback_search(question: str, reports: List[DocumentReport], vector_store:
                     f"分析サマリ: {analysis.get('analysis_summary', '')}\\n"
                 )
         
+        if not context_parts:
+            return "関連する文書が見つかりませんでした。質問を変更してお試しください。"
+        
         context = "\\n".join(context_parts)
         llm_service = get_llm_service()
-        return llm_service.answer_question(question, context)
+        answer = llm_service.answer_question(question, context)
+        
+        logger.info(f"🔄 フォールバック検索: {len(top_5_results)}件の文書を使用")
+        return answer
         
     except Exception as e:
         return f"フォールバック検索でもエラーが発生しました: {str(e)}"
@@ -435,23 +448,12 @@ def process_qa_question_stream(question: str, reports: List[DocumentReport]):
         # 検索結果から高品質なコンテキストを構築
         context_parts = []
         
-        # まず閾値以上のものを探す
-        high_similarity_results = []
-        if search_results:
-            for result in search_results:
-                distance = result.get('distance', 0.0)
-                similarity_score = 1.0 / (1.0 + distance / 100.0)
-                if similarity_score > 0.1:
-                    high_similarity_results.append((result, similarity_score))
+        # 上位5件を取得（類似度閾値は使わない）
+        top_5_results = search_results[:5] if search_results else []
         
-        # 閾値以上のものがない場合は上位3件を使用
-        if not high_similarity_results and search_results:
-            for result in search_results[:3]:  # 上位3件
-                distance = result.get('distance', 0.0)
-                similarity_score = 1.0 / (1.0 + distance / 100.0)
-                high_similarity_results.append((result, similarity_score))
-        
-        for i, (result, similarity_score) in enumerate(high_similarity_results):
+        for i, result in enumerate(top_5_results):
+            distance = result.get('distance', 0.0)
+            similarity_score = 1.0 / (1.0 + distance / 100.0)
             metadata = result.get('metadata', {})
             content = result.get('content', '')
             
@@ -541,7 +543,9 @@ def render_similarity_search():
                     st.write(f"**{len(results)}件の類似ケースが見つかりました:**")
                     
                     for i, result in enumerate(results, 1):
-                        with st.expander(f"{i}. {result['metadata'].get('file_name', '不明')} (類似度: {1-result['distance']:.3f})"):
+                        distance = result.get('distance', 0.0)
+                        similarity_score = 1.0 / (1.0 + distance / 100.0)
+                        with st.expander(f"{i}. {result['metadata'].get('file_name', '不明')} (類似度: {similarity_score:.3f})"):
                             st.write("**内容:**")
                             st.text(result['content'][:500] + "..." if len(result['content']) > 500 else result['content'])
                             
